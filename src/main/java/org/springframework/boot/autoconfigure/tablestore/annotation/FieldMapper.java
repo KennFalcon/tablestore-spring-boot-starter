@@ -14,9 +14,18 @@ import java.lang.annotation.*;
 @Documented
 public @interface FieldMapper {
     /**
+     * 是否是主键
      *
+     * @return is a primary key
      */
     boolean primaryKey() default false;
+
+    /**
+     * 是否是自增主键
+     *
+     * @return is a auto increase primary key
+     */
+    boolean autoIncrease() default false;
 
     /**
      * 映射的字段名
