@@ -2,25 +2,22 @@ package org.springframework.boot.autoconfigure.tablestore.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alicloud.openservices.tablestore.model.*;
-import com.google.common.base.CaseFormat;
-import com.google.common.base.Converter;
 import com.google.common.collect.Lists;
-import lombok.Data;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.checkerframework.checker.units.qual.A;
-import org.springframework.boot.autoconfigure.tablestore.annotation.FieldMapper;
+import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
+import org.springframework.boot.autoconfigure.tablestore.exception.OtsException;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery.KeyType;
 
+import java.beans.IntrospectionException;
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @project: tablestore-spring-boot-starter
@@ -30,178 +27,494 @@ import java.util.stream.Collectors;
  */
 public class ColumnUtils {
 
-    private static final Converter<String, String> CONVERTER = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.LOWER_UNDERSCORE);
-
-    public static ColumnValue getColumnValue(Object value) {
-        ColumnValue columnValue;
-        if (value instanceof byte[]) {
-            columnValue = ColumnValue.fromBinary((byte[])value);
-        } else if (value instanceof Integer) {
-            columnValue = ColumnValue.fromLong(((Integer)value).longValue());
-        } else if (value instanceof Long) {
-            columnValue = ColumnValue.fromLong((Long)value);
-        } else if (value instanceof Boolean) {
-            columnValue = ColumnValue.fromBoolean((Boolean)value);
-        } else if (value instanceof Double) {
-            columnValue = ColumnValue.fromDouble((Double)value);
-        } else if (value instanceof String) {
-            columnValue = ColumnValue.fromString((String)value);
-        } else {
-            columnValue = ColumnValue.fromString(JSON.toJSONString(value));
+    public static String getColumnName(String fieldName, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return fieldName;
         }
-        return columnValue;
+        if (StringUtils.isBlank(otsColumn.name())) {
+            return fieldName;
+        }
+        return otsColumn.name();
     }
 
-    public static PrimaryKeyValue getPrimaryKeyValue(Object value) {
+    public static ColumnValue getColumnValue(Object value, OtsColumn otsColumn) {
         if (value == null) {
             return null;
         }
-        PrimaryKeyValue primaryKeyValue = null;
         if (value instanceof byte[]) {
-            primaryKeyValue = PrimaryKeyValue.fromBinary((byte[])value);
+            return columnValue((byte[])value, otsColumn);
         } else if (value instanceof Integer) {
-            primaryKeyValue = PrimaryKeyValue.fromLong(((Integer)value).longValue());
+            return columnValue((Integer)value, otsColumn);
         } else if (value instanceof Long) {
-            primaryKeyValue = PrimaryKeyValue.fromLong((Long)value);
+            return columnValue((Long)value, otsColumn);
+        } else if (value instanceof Boolean) {
+            return columnValue((Boolean)value, otsColumn);
+        } else if (value instanceof Double) {
+            return columnValue((Double)value, otsColumn);
         } else if (value instanceof String) {
-            String stringValue = (String)value;
-            if (StringUtils.isNotEmpty(stringValue)) {
-                primaryKeyValue = PrimaryKeyValue.fromString(stringValue);
-            }
-        } else if (value instanceof List) {
-            List valueList = (List)value;
-            if (CollectionUtils.isNotEmpty(valueList)) {
-                primaryKeyValue = PrimaryKeyValue.fromString(JSON.toJSONString(valueList));
-            }
-        } else if (value instanceof Map) {
-            Map valueMap = (Map)value;
-            if (MapUtils.isNotEmpty(valueMap)) {
-                primaryKeyValue = PrimaryKeyValue.fromString(JSON.toJSONString(valueMap));
-            }
+            return columnValue((String)value, otsColumn);
         } else {
-            if (value != null) {
-                primaryKeyValue = PrimaryKeyValue.fromString(JSON.toJSONString(value));
-            }
+            return columnValue(value, otsColumn);
         }
-        return primaryKeyValue;
     }
 
-    public static Object getValue(Column column, FieldMapper fieldMapper) {
-        Object value = null;
-        Class<?> fieldClass = fieldMapper.className();
-        if (column.getValue().getType() == ColumnType.BOOLEAN) {
-            value = column.getValue().asBoolean();
-        } else if (column.getValue().getType() == ColumnType.BINARY) {
-            value = column.getValue().asBinary();
-        } else if (column.getValue().getType() == ColumnType.DOUBLE) {
-            value = column.getValue().asDouble();
-        } else if (column.getValue().getType() == ColumnType.INTEGER) {
-            long tmpValue = column.getValue().asLong();
-            if (fieldClass.isAssignableFrom(Integer.class)) {
-                value = (int)tmpValue;
-            } else if (fieldClass.isAssignableFrom(Long.class)) {
-                value = tmpValue;
-            }
-        } else if (column.getValue().getType() == ColumnType.STRING) {
-            if (fieldClass.isAssignableFrom(List.class)) {
-                Class<?> elementClass = fieldMapper.elementClassName();
-                value = JSON.parseArray(column.getValue().asString(), elementClass);
-            } else if (fieldClass.isAssignableFrom(Map.class)) {
-                value = JSON.parseObject(column.getValue().asString(), fieldClass);
-            } else if (fieldClass.isAssignableFrom(String.class)) {
-                value = column.getValue().asString();
-            } else {
-                value = JSON.parseObject(column.getValue().asString(), fieldClass);
-            }
+    public static PrimaryKeyValue getPrimaryKeyValue(Object value, OtsColumn otsColumn) {
+        if (value == null) {
+            return null;
         }
-        return value;
+        if (value instanceof byte[]) {
+            return primaryKeyValue((byte[])value, otsColumn);
+        } else if (value instanceof Integer) {
+            return primaryKeyValue((Integer)value, otsColumn);
+        } else if (value instanceof Long) {
+            return primaryKeyValue((Long)value, otsColumn);
+        } else if (value instanceof String) {
+            return primaryKeyValue((String)value, otsColumn);
+        } else {
+            return primaryKeyValue(value, otsColumn);
+        }
     }
 
-    public static Object getValue(Column column, Field field) {
-        Object value = null;
-        Class<?> clazz = field.getType();
-        if (column.getValue().getType() == ColumnType.BOOLEAN) {
-            value = column.getValue().asBoolean();
-        } else if (column.getValue().getType() == ColumnType.BINARY) {
-            value = column.getValue().asBinary();
-        } else if (column.getValue().getType() == ColumnType.DOUBLE) {
-            value = column.getValue().asDouble();
-        } else if (column.getValue().getType() == ColumnType.INTEGER) {
-            long tmpValue = column.getValue().asLong();
-            if (clazz.isAssignableFrom(Integer.class)) {
-                value = (int)tmpValue;
-            } else if (clazz.isAssignableFrom(Long.class)) {
-                value = tmpValue;
-            }
-        } else if (column.getValue().getType() == ColumnType.STRING) {
-            if (clazz.isAssignableFrom(List.class)) {
-                Type genericType = field.getGenericType();
-                if (genericType == null) {
-                    value =  JSON.parseArray(column.getValue().asString());
-                } else if (genericType instanceof ParameterizedType) {
-                    ParameterizedType parameterizedType = (ParameterizedType)genericType;
-                    Type[] types = parameterizedType.getActualTypeArguments();
-                    value = JSON.parseArray(column.getValue().asString(), types);
+    public static Object getValue(Column column, OtsColumn otsColumn) {
+        switch (column.getValue().getType()) {
+            case BINARY:
+                return getValue(column.getValue().asBinary(), otsColumn);
+            case INTEGER:
+                return getValue(column.getValue().asLong(), otsColumn);
+            case DOUBLE:
+                return getValue(column.getValue().asDouble(), otsColumn);
+            case BOOLEAN:
+                return getValue(column.getValue().asBoolean(), otsColumn);
+            case STRING:
+                return getValue(column.getValue().asString(), otsColumn);
+            default:
+                return null;
+        }
+    }
+
+    public static Object getValue(PrimaryKeyColumn column, OtsColumn otsColumn) {
+        switch (column.getValue().getType()) {
+            case BINARY:
+                return getValue(column.getValue().asBinary(), otsColumn);
+            case INTEGER:
+                return getValue(column.getValue().asLong(), otsColumn);
+            case STRING:
+                return getValue(column.getValue().asString(), otsColumn);
+            default:
+                return null;
+        }
+    }
+
+    public static <T> PrimaryKey primaryKey(T key) {
+        Class<?> clazz = key.getClass();
+        if (clazz.isAssignableFrom(PrimaryKey.class)) {
+            return (PrimaryKey)key;
+        } else {
+            List<PrimaryKeyColumn> columns = Lists.newArrayList();
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field field : fields) {
+                String fieldName = field.getName();
+                Object value = invokeGetValue(key, fieldName);
+                if (value == null) {
+                    continue;
                 }
-            } else if (clazz.isAssignableFrom(Map.class)) {
-                value = JSON.parseObject(column.getValue().asString(), clazz);
-            } else if (clazz.isAssignableFrom(String.class)) {
-                value = column.getValue().asString();
+                OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
+                String columnName = getColumnName(fieldName, otsColumn);
+                PrimaryKeyValue primaryKeyValue = null;
+                if (otsColumn == null) {
+                    primaryKeyValue = getPrimaryKeyValue(value, null);
+                } else if (otsColumn.primaryKey()) {
+                    primaryKeyValue = getPrimaryKeyValue(value, otsColumn);
+                }
+                if (primaryKeyValue == null) {
+                    continue;
+                }
+                columns.add(new PrimaryKeyColumn(columnName, primaryKeyValue));
+            }
+            return new PrimaryKey(columns);
+        }
+    }
+
+    public static <T> PrimaryKey primaryKey(T key, RangeGetQuery.KeyType keyType, Direction direction) {
+        Class<?> clazz = key.getClass();
+        if (clazz.isAssignableFrom(PrimaryKey.class)) {
+            return (PrimaryKey)key;
+        } else {
+            List<PrimaryKeyColumn> columns = Lists.newArrayList();
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field field : fields) {
+                String fieldName = field.getName();
+                Object value = invokeGetValue(key, fieldName);
+                OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
+                String columnName = ColumnUtils.getColumnName(fieldName, otsColumn);
+                PrimaryKeyValue primaryKeyValue = primaryKeyValue(value, otsColumn, keyType, direction);
+                if (primaryKeyValue != null) {
+                    columns.add(new PrimaryKeyColumn(columnName, primaryKeyValue));
+                }
+            }
+            return new PrimaryKey(columns);
+        }
+    }
+
+    public static <T> Object invokeGetValue(T data, String fieldName) {
+        try {
+            PropertyDescriptor pd = new PropertyDescriptor(fieldName, data.getClass());
+            Method method = pd.getReadMethod();
+            return method.invoke(data);
+        } catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
+            throw new OtsException("reflect error, class: %s, field: %s", e, data.getClass().getName(), fieldName);
+        }
+    }
+
+    private static PrimaryKeyValue primaryKeyValue(byte[] value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return PrimaryKeyValue.fromBinary(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return PrimaryKeyValue.fromBinary(value);
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            byte[] actual = compress(value, otsColumn);
+            if (actual != null) {
+                return PrimaryKeyValue.fromBinary(actual);
+            }
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            byte[] actual = compress(value, otsColumn);
+            if (actual != null) {
+                if (StringUtils.isBlank(otsColumn.charset())) {
+                    return PrimaryKeyValue.fromString(new String(actual, StandardCharsets.UTF_8));
+                } else {
+                    return PrimaryKeyValue.fromString(new String(actual, Charset.forName(otsColumn.charset())));
+                }
+            }
+        }
+        return null;
+    }
+
+    private static PrimaryKeyValue primaryKeyValue(Integer value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return PrimaryKeyValue.fromLong(value.longValue());
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return PrimaryKeyValue.fromLong(value.longValue());
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return PrimaryKeyValue.fromString(value.toString());
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return PrimaryKeyValue.fromLong(value.longValue());
+        }
+        return null;
+    }
+
+    private static PrimaryKeyValue primaryKeyValue(Long value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return PrimaryKeyValue.fromLong(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return PrimaryKeyValue.fromLong(value);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return PrimaryKeyValue.fromString(value.toString());
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return PrimaryKeyValue.fromLong(value);
+        }
+        return null;
+    }
+
+    private static PrimaryKeyValue primaryKeyValue(String value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return PrimaryKeyValue.fromString(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return PrimaryKeyValue.fromString(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return PrimaryKeyValue.fromLong(Integer.parseInt(value));
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return PrimaryKeyValue.fromLong(Long.parseLong(value));
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return PrimaryKeyValue.fromString(value);
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            byte[] bytes;
+            if (StringUtils.isBlank(otsColumn.charset())) {
+                bytes = value.getBytes(StandardCharsets.UTF_8);
             } else {
-                value = JSON.parseObject(column.getValue().asString(), clazz);
+                bytes = value.getBytes(Charset.forName(otsColumn.charset()));
+            }
+            byte[] actual = compress(bytes, otsColumn);
+            if (actual != null) {
+                return PrimaryKeyValue.fromBinary(actual);
             }
         }
-        return value;
+        return null;
     }
 
-    public static Object getValue(PrimaryKeyColumn column, FieldMapper fieldMapper) {
-        Object value = null;
-        Class<?> fieldClass = fieldMapper.className();
-        if (column.getValue().getType() == PrimaryKeyType.BINARY) {
-            value = column.getValue().asBinary();
-        } else if (column.getValue().getType() == PrimaryKeyType.INTEGER) {
-            Long tmpValue = column.getValue().asLong();
-            if (fieldClass.isAssignableFrom(Integer.class)) {
-                value = tmpValue.intValue();
-            } else if (fieldClass.isAssignableFrom(Long.class)) {
-                value = tmpValue;
+    private static PrimaryKeyValue primaryKeyValue(Object value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return PrimaryKeyValue.fromString(JSON.toJSONString(value));
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return PrimaryKeyValue.fromString(JSON.toJSONString(value));
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return PrimaryKeyValue.fromString(JSON.toJSONString(value));
+        }
+        return null;
+    }
+
+    private static ColumnValue columnValue(byte[] value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromBinary(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromBinary(value);
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            return ColumnValue.fromBinary(value);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            byte[] actual = compress(value, otsColumn);
+            if (actual != null) {
+                if (StringUtils.isBlank(otsColumn.charset())) {
+                    return ColumnValue.fromString(new String(actual, StandardCharsets.UTF_8));
+                } else {
+                    return ColumnValue.fromString(new String(actual, Charset.forName(otsColumn.charset())));
+                }
             }
-        } else if (column.getValue().getType() == PrimaryKeyType.STRING) {
-            value = column.getValue().asString();
         }
-        return value;
+        return null;
     }
 
-    public static String getColumnName(String fieldName, FieldMapper fieldMapper) {
-        if (fieldMapper == null) {
-            return CONVERTER.convert(fieldName);
+    private static ColumnValue columnValue(Integer value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromLong(value.longValue());
         }
-        if (StringUtils.isBlank(fieldMapper.name())) {
-            return CONVERTER.convert(fieldName);
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromLong(value.longValue());
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return ColumnValue.fromLong(value.longValue());
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return ColumnValue.fromLong(value.longValue());
+        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+            return ColumnValue.fromDouble(value.doubleValue());
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(value.toString());
         }
-        return fieldMapper.name();
+        return null;
     }
 
-    public static PrimaryKey primaryKey(List<Pair<String, Object>> keyPairs, RangeGetQuery.KeyType keyType, Direction direction) {
-        List<PrimaryKeyColumn> columns = keyPairs.stream()
-            .map(pair -> new PrimaryKeyColumn(pair.getKey(), Objects.requireNonNull(primaryKeyValue(pair.getValue(), keyType, direction))))
-            .collect(Collectors.toList());
-        return new PrimaryKey(columns);
+    private static ColumnValue columnValue(Long value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromLong(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromLong(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return ColumnValue.fromLong(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+            return ColumnValue.fromDouble(value.doubleValue());
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(value.toString());
+        }
+        return null;
     }
 
-    public static PrimaryKey primaryKey(List<Pair<String, Object>> keyPairs) {
-        List<PrimaryKeyColumn> columns = keyPairs.stream()
-            .map(pair -> new PrimaryKeyColumn(pair.getKey(), getPrimaryKeyValue(pair.getValue())))
-            .collect(Collectors.toList());
-        return new PrimaryKey(columns);
+    private static ColumnValue columnValue(Boolean value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromBoolean(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromBoolean(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Boolean.class)) {
+            return ColumnValue.fromBoolean(value);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(value.toString());
+        }
+        return null;
     }
 
-    private static PrimaryKeyValue primaryKeyValue(Object value, RangeGetQuery.KeyType keyType, Direction direction) {
+    private static ColumnValue columnValue(Double value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromDouble(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromDouble(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+            return ColumnValue.fromDouble(value);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(value.toString());
+        }
+        return null;
+    }
+
+    private static ColumnValue columnValue(String value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromString(value);
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromString(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return ColumnValue.fromLong(Integer.parseInt(value));
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return ColumnValue.fromLong(Long.parseLong(value));
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(value);
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            byte[] bytes;
+            if (StringUtils.isBlank(otsColumn.charset())) {
+                bytes = value.getBytes(StandardCharsets.UTF_8);
+            } else {
+                bytes = value.getBytes(Charset.forName(otsColumn.charset()));
+            }
+            byte[] actual = compress(bytes, otsColumn);
+            if (actual != null) {
+                return ColumnValue.fromBinary(actual);
+            }
+        }
+        return null;
+    }
+
+    private static ColumnValue columnValue(Object value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return ColumnValue.fromString(JSON.toJSONString(value));
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return ColumnValue.fromString(JSON.toJSONString(value));
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return ColumnValue.fromString(JSON.toJSONString(value));
+        }
+        return null;
+    }
+
+    private static Object getValue(byte[] value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            return uncompress(value, otsColumn);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            byte[] actual = uncompress(value, otsColumn);
+            if (actual != null) {
+                if (StringUtils.isBlank(otsColumn.charset())) {
+                    return new String(actual, StandardCharsets.UTF_8);
+                } else {
+                    return new String(actual, Charset.forName(otsColumn.charset()));
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Object getValue(Long value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return value.intValue();
+        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+            return value.doubleValue();
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return String.valueOf(value);
+        }
+        return null;
+    }
+
+    private static Object getValue(Boolean value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(Boolean.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return String.valueOf(value);
+        }
+        return null;
+    }
+
+    private static Object getValue(Double value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return value.intValue();
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return value.longValue();
+        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return String.valueOf(value);
+        }
+        return null;
+    }
+
+    private static Object getValue(String value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+            return Integer.parseInt(value);
+        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+            return Long.parseLong(value);
+        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+            return value;
+        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            byte[] bytes;
+            if (StringUtils.isBlank(otsColumn.charset())) {
+                bytes = value.getBytes(StandardCharsets.UTF_8);
+            } else {
+                bytes = value.getBytes(Charset.forName(otsColumn.charset()));
+            }
+            return uncompress(bytes, otsColumn);
+        } else if (otsColumn.clazz().isAssignableFrom(List.class)) {
+            if (otsColumn.elementClazz().isAssignableFrom(void.class)) {
+                return JSON.parseArray(value);
+            } else {
+                return JSON.parseArray(value, otsColumn.elementClazz());
+            }
+        } else if (otsColumn.clazz().isAssignableFrom(Map.class)) {
+            return JSON.parseObject(value, otsColumn.clazz());
+        } else {
+            return JSON.parseObject(value, otsColumn.clazz());
+        }
+    }
+
+    private static byte[] compress(byte[] value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        try {
+            Method method = otsColumn.compress().getDeclaredMethod("compress", byte[].class);
+            return (byte[])method.invoke(null, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static byte[] uncompress(byte[] value, OtsColumn otsColumn) {
+        if (otsColumn == null) {
+            return value;
+        }
+        try {
+            Method method = otsColumn.compress().getDeclaredMethod("uncompress", byte[].class);
+            return (byte[])method.invoke(null, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static PrimaryKeyValue primaryKeyValue(Object value, OtsColumn otsColumn, KeyType keyType, Direction direction) {
         switch (keyType) {
             case START:
                 switch (direction) {
                     case FORWARD: {
-                        PrimaryKeyValue primaryKeyValue = ColumnUtils.getPrimaryKeyValue(value);
+                        PrimaryKeyValue primaryKeyValue = getPrimaryKeyValue(value, otsColumn);
                         if (primaryKeyValue == null) {
                             return PrimaryKeyValue.INF_MIN;
                         } else {
@@ -209,7 +522,7 @@ public class ColumnUtils {
                         }
                     }
                     case BACKWARD: {
-                        PrimaryKeyValue primaryKeyValue = ColumnUtils.getPrimaryKeyValue(value);
+                        PrimaryKeyValue primaryKeyValue = getPrimaryKeyValue(value, otsColumn);
                         if (primaryKeyValue == null) {
                             return PrimaryKeyValue.INF_MAX;
                         } else {
@@ -220,7 +533,7 @@ public class ColumnUtils {
             case END:
                 switch (direction) {
                     case FORWARD: {
-                        PrimaryKeyValue primaryKeyValue = ColumnUtils.getPrimaryKeyValue(value);
+                        PrimaryKeyValue primaryKeyValue = getPrimaryKeyValue(value, otsColumn);
                         if (primaryKeyValue == null) {
                             return PrimaryKeyValue.INF_MAX;
                         } else {
@@ -228,7 +541,7 @@ public class ColumnUtils {
                         }
                     }
                     case BACKWARD: {
-                        PrimaryKeyValue primaryKeyValue = ColumnUtils.getPrimaryKeyValue(value);
+                        PrimaryKeyValue primaryKeyValue = getPrimaryKeyValue(value, otsColumn);
                         if (primaryKeyValue == null) {
                             return PrimaryKeyValue.INF_MIN;
                         } else {

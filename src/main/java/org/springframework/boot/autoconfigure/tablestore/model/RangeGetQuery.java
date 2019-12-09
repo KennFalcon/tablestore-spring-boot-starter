@@ -4,7 +4,6 @@ import com.alicloud.openservices.tablestore.model.Direction;
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 
 import java.util.List;
@@ -19,10 +18,6 @@ import java.util.List;
 @Accessors(fluent = true)
 public class RangeGetQuery {
 
-    private List<Pair<String, Object>> startKeyPairs;
-
-    private List<Pair<String, Object>> endKeyPairs;
-
     private PrimaryKey startPrimaryKey;
 
     private PrimaryKey endPrimaryKey;
@@ -34,17 +29,19 @@ public class RangeGetQuery {
     private Direction direction = Direction.FORWARD;
 
     public PrimaryKey startPrimaryKey() {
-        if (startPrimaryKey != null) {
-            return startPrimaryKey;
-        }
-        return ColumnUtils.primaryKey(startKeyPairs, KeyType.START, direction);
+        return startPrimaryKey;
+    }
+
+    public <T> void startPrimaryKey(T key) {
+        startPrimaryKey = ColumnUtils.primaryKey(key, KeyType.START, direction);
     }
 
     public PrimaryKey endPrimaryKey() {
-        if (endPrimaryKey != null) {
-            return endPrimaryKey;
-        }
-        return ColumnUtils.primaryKey(endKeyPairs, KeyType.END, direction);
+        return endPrimaryKey;
+    }
+
+    public <T> void endPrimaryKey(T key) {
+        endPrimaryKey = ColumnUtils.primaryKey(key, KeyType.END, direction);
     }
 
     public enum KeyType {
