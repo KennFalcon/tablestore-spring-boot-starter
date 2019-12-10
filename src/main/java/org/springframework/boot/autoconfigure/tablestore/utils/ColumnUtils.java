@@ -8,12 +8,11 @@ import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
 import org.springframework.boot.autoconfigure.tablestore.exception.OtsException;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery.KeyType;
+import org.springframework.boot.autoconfigure.tablestore.utils.compress.NoCompress;
 
 import java.beans.IntrospectionException;
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -75,31 +74,31 @@ public class ColumnUtils {
         }
     }
 
-    public static Object getValue(Column column, OtsColumn otsColumn) {
+    public static Object getValue(Column column, OtsColumn otsColumn, Class<?> clazz, Type type) {
         switch (column.getValue().getType()) {
             case BINARY:
-                return getValue(column.getValue().asBinary(), otsColumn);
+                return getValue(column.getValue().asBinary(), otsColumn, clazz);
             case INTEGER:
-                return getValue(column.getValue().asLong(), otsColumn);
+                return getValue(column.getValue().asLong(), otsColumn, clazz);
             case DOUBLE:
-                return getValue(column.getValue().asDouble(), otsColumn);
+                return getValue(column.getValue().asDouble(), otsColumn, clazz);
             case BOOLEAN:
-                return getValue(column.getValue().asBoolean(), otsColumn);
+                return getValue(column.getValue().asBoolean(), otsColumn, clazz);
             case STRING:
-                return getValue(column.getValue().asString(), otsColumn);
+                return getValue(column.getValue().asString(), otsColumn, clazz, type);
             default:
                 return null;
         }
     }
 
-    public static Object getValue(PrimaryKeyColumn column, OtsColumn otsColumn) {
+    public static Object getValue(PrimaryKeyColumn column, OtsColumn otsColumn, Class<?> clazz, Type type) {
         switch (column.getValue().getType()) {
             case BINARY:
-                return getValue(column.getValue().asBinary(), otsColumn);
+                return getValue(column.getValue().asBinary(), otsColumn, clazz);
             case INTEGER:
-                return getValue(column.getValue().asLong(), otsColumn);
+                return getValue(column.getValue().asLong(), otsColumn, clazz);
             case STRING:
-                return getValue(column.getValue().asString(), otsColumn);
+                return getValue(column.getValue().asString(), otsColumn, clazz, type);
             default:
                 return null;
         }
@@ -379,107 +378,156 @@ public class ColumnUtils {
         return null;
     }
 
-    private static Object getValue(byte[] value, OtsColumn otsColumn) {
+    private static Object getValue(byte[] value, OtsColumn otsColumn, Class<?> clazz) {
         if (otsColumn == null) {
-            return value;
+            return getValue(value, clazz, null, NoCompress.class);
         }
         if (otsColumn.clazz().isAssignableFrom(void.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
-            return uncompress(value, otsColumn);
-        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
-            byte[] actual = uncompress(value, otsColumn);
+            return getValue(value, clazz, otsColumn.charset(), otsColumn.compress());
+        } else {
+            return getValue(value, otsColumn.clazz(), otsColumn.charset(), otsColumn.compress());
+        }
+    }
+
+    private static Object getValue(byte[] value, Class<?> clazz, String charset, Class<?> uncompress) {
+        if (clazz.isAssignableFrom(byte[].class) || clazz.isAssignableFrom(Byte[].class)) {
+            return uncompress(value, uncompress);
+        } else if (clazz.isAssignableFrom(String.class)) {
+            byte[] actual = uncompress(value, uncompress);
             if (actual != null) {
-                if (StringUtils.isBlank(otsColumn.charset())) {
+                if (StringUtils.isBlank(charset)) {
                     return new String(actual, StandardCharsets.UTF_8);
                 } else {
-                    return new String(actual, Charset.forName(otsColumn.charset()));
+                    return new String(actual, Charset.forName(charset));
                 }
             }
         }
         return null;
     }
 
-    private static Object getValue(Long value, OtsColumn otsColumn) {
-        if (otsColumn == null) {
-            return value;
+    private static Object getValue(Long value, OtsColumn otsColumn, Class<?> clazz) {
+        if (otsColumn == null || otsColumn.clazz().isAssignableFrom(void.class)) {
+            return getValue(value, clazz);
+        } else {
+            return getValue(value, otsColumn.clazz());
         }
-        if (otsColumn.clazz().isAssignableFrom(void.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+    }
+
+    private static Object getValue(Long value, Class<?> clazz) {
+        if (clazz.isAssignableFrom(Short.class) || clazz.isAssignableFrom(short.class)) {
+            return value.shortValue();
+        } else if (clazz.isAssignableFrom(Integer.class) || clazz.isAssignableFrom(int.class)) {
             return value.intValue();
-        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+        } else if (clazz.isAssignableFrom(Long.class) || clazz.isAssignableFrom(long.class)) {
+            return value;
+        } else if (clazz.isAssignableFrom(Float.class) || clazz.isAssignableFrom(float.class)) {
+            return value.floatValue();
+        } else if (clazz.isAssignableFrom(Double.class) || clazz.isAssignableFrom(double.class)) {
             return value.doubleValue();
-        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+        } else if (clazz.isAssignableFrom(String.class)) {
             return String.valueOf(value);
         }
         return null;
     }
 
-    private static Object getValue(Boolean value, OtsColumn otsColumn) {
-        if (otsColumn == null) {
-            return value;
+    private static Object getValue(Boolean value, OtsColumn otsColumn, Class<?> clazz) {
+        if (otsColumn == null || otsColumn.clazz().isAssignableFrom(void.class)) {
+            return getValue(value, clazz);
+        } else {
+            return getValue(value, otsColumn.clazz());
         }
-        if (otsColumn.clazz().isAssignableFrom(void.class)) {
+    }
+
+    private static Object getValue(Boolean value, Class<?> clazz) {
+        if (clazz.isAssignableFrom(Boolean.class) || clazz.isAssignableFrom(boolean.class)) {
             return value;
-        } else if (otsColumn.clazz().isAssignableFrom(Boolean.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+        } else if (clazz.isAssignableFrom(String.class)) {
             return String.valueOf(value);
         }
         return null;
     }
 
-    private static Object getValue(Double value, OtsColumn otsColumn) {
-        if (otsColumn == null) {
-            return value;
+    private static Object getValue(Double value, OtsColumn otsColumn, Class<?> clazz) {
+        if (otsColumn == null || otsColumn.clazz().isAssignableFrom(void.class)) {
+            return getValue(value, clazz);
+        } else {
+            return getValue(value, otsColumn.clazz());
         }
-        if (otsColumn.clazz().isAssignableFrom(void.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
+    }
+
+    private static Object getValue(Double value, Class<?> clazz) {
+        if (clazz.isAssignableFrom(Byte.class) || clazz.isAssignableFrom(byte.class)) {
+            return value.byteValue();
+        } else if (clazz.isAssignableFrom(Short.class) || clazz.isAssignableFrom(short.class)) {
+            return value.shortValue();
+        } else if (clazz.isAssignableFrom(Integer.class) || clazz.isAssignableFrom(int.class)) {
             return value.intValue();
-        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
+        } else if (clazz.isAssignableFrom(Long.class) || clazz.isAssignableFrom(long.class)) {
             return value.longValue();
-        } else if (otsColumn.clazz().isAssignableFrom(Double.class)) {
+        } else if (clazz.isAssignableFrom(Float.class) || clazz.isAssignableFrom(float.class)) {
+            return value.floatValue();
+        } else if (clazz.isAssignableFrom(Double.class) || clazz.isAssignableFrom(double.class)) {
             return value;
-        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
+        } else if (clazz.isAssignableFrom(String.class)) {
             return String.valueOf(value);
         }
         return null;
     }
 
-    private static Object getValue(String value, OtsColumn otsColumn) {
+    private static Object getValue(String value, OtsColumn otsColumn, Class<?> clazz, Type type) {
         if (otsColumn == null) {
-            return value;
+            return getValue(value, clazz, null, NoCompress.class, null, type);
         }
         if (otsColumn.clazz().isAssignableFrom(void.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(Integer.class)) {
-            return Integer.parseInt(value);
-        } else if (otsColumn.clazz().isAssignableFrom(Long.class)) {
-            return Long.parseLong(value);
-        } else if (otsColumn.clazz().isAssignableFrom(String.class)) {
-            return value;
-        } else if (otsColumn.clazz().isAssignableFrom(byte[].class)) {
+            return getValue(value, clazz, otsColumn.charset(), otsColumn.compress(), otsColumn.elementClazz(), type);
+        } else {
+            return getValue(value, otsColumn.clazz(), otsColumn.charset(), otsColumn.compress(), otsColumn.elementClazz(), type);
+        }
+    }
+
+    private static Object getValue(String value, Class<?> clazz, String charset, Class<?> uncompress, Class<?> elementClazz, Type type) {
+        if (clazz.isAssignableFrom(byte[].class) || clazz.isAssignableFrom(Byte[].class)) {
             byte[] bytes;
-            if (StringUtils.isBlank(otsColumn.charset())) {
+            if (StringUtils.isBlank(charset)) {
                 bytes = value.getBytes(StandardCharsets.UTF_8);
             } else {
-                bytes = value.getBytes(Charset.forName(otsColumn.charset()));
+                bytes = value.getBytes(Charset.forName(charset));
             }
-            return uncompress(bytes, otsColumn);
-        } else if (otsColumn.clazz().isAssignableFrom(List.class)) {
-            if (otsColumn.elementClazz().isAssignableFrom(void.class)) {
+            return uncompress(bytes, uncompress);
+        } else if (clazz.isAssignableFrom(Short.class) || clazz.isAssignableFrom(short.class)) {
+            return Short.parseShort(value);
+        } else if (clazz.isAssignableFrom(Integer.class) || clazz.isAssignableFrom(int.class)) {
+            return Integer.parseInt(value);
+        } else if (clazz.isAssignableFrom(Long.class) || clazz.isAssignableFrom(long.class)) {
+            return Long.parseLong(value);
+        } else if (clazz.isAssignableFrom(Float.class) || clazz.isAssignableFrom(float.class)) {
+            return Float.parseFloat(value);
+        } else if (clazz.isAssignableFrom(Double.class) || clazz.isAssignableFrom(double.class)) {
+            return Double.parseDouble(value);
+        } else if (clazz.isAssignableFrom(char[].class) || clazz.isAssignableFrom(Charset[].class)) {
+            return value.toCharArray();
+        } else if (clazz.isAssignableFrom(Boolean.class) || clazz.isAssignableFrom(boolean.class)) {
+            return Boolean.parseBoolean(value);
+        } else if (clazz.isAssignableFrom(String.class)) {
+            return value;
+        } else if (clazz.isAssignableFrom(List.class)) {
+            if (elementClazz == null || !elementClazz.isAssignableFrom(void.class)) {
+                return JSON.parseArray(value, elementClazz);
+            } else if (type == null) {
                 return JSON.parseArray(value);
+            } else if (type instanceof ParameterizedType) {
+                ParameterizedType parameterizedType = (ParameterizedType)type;
+                return JSON.parseArray(value, (Class<?>)parameterizedType.getActualTypeArguments()[0]);
             } else {
-                return JSON.parseArray(value, otsColumn.elementClazz());
+                return JSON.parseArray(value);
             }
-        } else if (otsColumn.clazz().isAssignableFrom(Map.class)) {
-            return JSON.parseObject(value, otsColumn.clazz());
+        } else if (clazz.isAssignableFrom(Map.class)) {
+            return JSON.parseObject(value, Map.class);
+        } else if (clazz.isArray()) {
+            // TODO
+            return null;
         } else {
-            return JSON.parseObject(value, otsColumn.clazz());
+            return JSON.parseObject(value, clazz);
         }
     }
 
@@ -489,20 +537,20 @@ public class ColumnUtils {
         }
         try {
             Method method = otsColumn.compress().getDeclaredMethod("compress", byte[].class);
-            return (byte[])method.invoke(null, value);
+            return (byte[])method.invoke(null, (Object)value);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    private static byte[] uncompress(byte[] value, OtsColumn otsColumn) {
-        if (otsColumn == null) {
+    private static byte[] uncompress(byte[] value, Class<?> uncompress) {
+        if (uncompress == null) {
             return value;
         }
         try {
-            Method method = otsColumn.compress().getDeclaredMethod("uncompress", byte[].class);
-            return (byte[])method.invoke(null, value);
+            Method method = uncompress.getDeclaredMethod("uncompress", byte[].class);
+            return (byte[])method.invoke(null, (Object)value);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

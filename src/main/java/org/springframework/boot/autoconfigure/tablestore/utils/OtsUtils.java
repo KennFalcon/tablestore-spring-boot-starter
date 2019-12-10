@@ -61,7 +61,7 @@ public class OtsUtils {
             if (otsColumn != null && otsColumn.primaryKey()) {
                 PrimaryKeyColumn primaryKeyColumn = row.getPrimaryKey().getPrimaryKeyColumn(columnName);
                 if (primaryKeyColumn != null) {
-                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn);
+                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn, field.getType(), field.getGenericType());
 
                 }
             } else {
@@ -69,7 +69,7 @@ public class OtsUtils {
                 if (column == null) {
                     continue;
                 }
-                value = ColumnUtils.getValue(column, otsColumn);
+                value = ColumnUtils.getValue(column, otsColumn, field.getType(), field.getGenericType());
             }
             try {
                 method.invoke(data, value);
@@ -123,7 +123,7 @@ public class OtsUtils {
             if (otsColumn != null && otsColumn.primaryKey()) {
                 PrimaryKeyColumn primaryKeyColumn = record.getPrimaryKey().getPrimaryKeyColumn(columnName);
                 if (primaryKeyColumn != null) {
-                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn);
+                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn, field.getType(), field.getGenericType());
 
                 }
             } else {
@@ -131,7 +131,7 @@ public class OtsUtils {
                     continue;
                 }
                 Column column = columnMap.get(columnName);
-                value = ColumnUtils.getValue(column, otsColumn);
+                value = ColumnUtils.getValue(column, otsColumn, field.getType(), field.getGenericType());
             }
             try {
                 method.invoke(data, value);
