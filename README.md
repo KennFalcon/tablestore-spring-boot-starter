@@ -1,7 +1,7 @@
 # tablestore-spring-boot-starter
 Aliyun TableStore Spring Boot Starter
 
-基于阿里云表格存储Spring Boot自动集成
+基于阿里云表格存储Spring Boot自动集成(暂未完成)
 
 ----------
 
