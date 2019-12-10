@@ -2,7 +2,8 @@ package org.springframework.boot.autoconfigure.tablestore.model;
 
 import com.alicloud.openservices.tablestore.model.Direction;
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 
@@ -14,7 +15,8 @@ import java.util.List;
  * @author: Kenn
  * @create: 2019-12-05 15:31
  */
-@Data
+@Getter
+@Setter
 @Accessors(fluent = true)
 public class RangeGetQuery {
 

@@ -1,6 +1,5 @@
 package org.springframework.boot.autoconfigure.tablestore.model;
 
-import com.alicloud.openservices.tablestore.model.PrimaryKey;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,16 +11,18 @@ import java.util.List;
  * @project: tablestore-spring-boot-starter
  * @description:
  * @author: Kenn
- * @create: 2019-12-05 15:34
+ * @create: 2019-12-09 14:05
  */
 @Getter
 @Setter
 @Accessors(fluent = true)
-public class RangeGetReply<T> {
+public class IndexSearchReply<T> {
+
+    private long totalCount;
+
+    private boolean allSuccess;
 
     private List<T> records = Lists.newArrayList();
-
-    private PrimaryKey nextStartPrimaryKey;
 
     public void add(T record) {
         records.add(record);

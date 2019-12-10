@@ -1,19 +1,12 @@
 package org.springframework.boot.autoconfigure.tablestore.model;
 
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
-import com.alicloud.openservices.tablestore.model.PrimaryKeyColumn;
-import com.alicloud.openservices.tablestore.model.PrimaryKeyValue;
-import com.google.common.collect.Lists;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +15,8 @@ import java.util.stream.Collectors;
  * @author: Kenn
  * @create: 2019-12-05 17:39
  */
-@Data
+@Getter
+@Setter
 @Accessors(fluent = true)
 public class BatchGetQuery {
 

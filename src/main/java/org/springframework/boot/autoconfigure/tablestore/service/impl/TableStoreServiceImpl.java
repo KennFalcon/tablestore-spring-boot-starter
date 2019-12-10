@@ -2,6 +2,9 @@ package org.springframework.boot.autoconfigure.tablestore.service.impl;
 
 import com.alicloud.openservices.tablestore.SyncClient;
 import com.alicloud.openservices.tablestore.model.*;
+import com.alicloud.openservices.tablestore.model.search.SearchQuery;
+import com.alicloud.openservices.tablestore.model.search.SearchRequest;
+import com.alicloud.openservices.tablestore.model.search.SearchResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
@@ -11,16 +14,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
 import org.springframework.boot.autoconfigure.tablestore.annotation.Table;
 import org.springframework.boot.autoconfigure.tablestore.exception.OtsException;
-import org.springframework.boot.autoconfigure.tablestore.model.BatchGetQuery;
-import org.springframework.boot.autoconfigure.tablestore.model.BatchGetReply;
-import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
-import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
+import org.springframework.boot.autoconfigure.tablestore.model.*;
 import org.springframework.boot.autoconfigure.tablestore.service.TableStoreService;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.OtsUtils;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.Objects;
 
@@ -66,7 +65,10 @@ public class TableStoreServiceImpl implements TableStoreService {
         Preconditions.checkNotNull(key);
         Table table = clazz.getAnnotation(Table.class);
         if (table == null) {
-            throw new RuntimeException("the data have no table annotation");
+            throw new OtsException("the table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
         }
         PrimaryKey primaryKey = ColumnUtils.primaryKey(key);
         SingleRowQueryCriteria criteria = new SingleRowQueryCriteria(table.name(), primaryKey);
@@ -111,13 +113,17 @@ public class TableStoreServiceImpl implements TableStoreService {
         Preconditions.checkNotNull(query);
         Table table = clazz.getAnnotation(Table.class);
         if (table == null) {
-            throw new RuntimeException("the data have no table annotation");
+            throw new OtsException("the table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
         }
         RangeGetReply<T> reply = new RangeGetReply<>();
         PrimaryKey start = query.startPrimaryKey();
         int batchSize = Math.min(query.limit(), 100);
         while (start != null) {
-            GetRangeResponse response = getRange(table.name(), start, query.endPrimaryKey(), query.columnNames(), query.direction(), batchSize);
+            GetRangeResponse response = getRange(table.name(), start, query.endPrimaryKey(), query.columnNames(),
+                query.direction(), batchSize);
             if (response == null || response.getRows() == null) {
                 reply.nextStartPrimaryKey(null);
                 break;
@@ -143,7 +149,10 @@ public class TableStoreServiceImpl implements TableStoreService {
         Preconditions.checkNotNull(query);
         Table table = clazz.getAnnotation(Table.class);
         if (table == null) {
-            throw new RuntimeException("the data have no table annotation");
+            throw new OtsException("the table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
         }
 
         MultiRowQueryCriteria criteria = new MultiRowQueryCriteria(table.name());
@@ -170,6 +179,40 @@ public class TableStoreServiceImpl implements TableStoreService {
         return reply;
     }
 
+    @Override
+    public <T> IndexSearchReply<T> search(IndexSearchQuery query, Class<T> clazz) {
+        Preconditions.checkNotNull(query);
+        Table table = clazz.getAnnotation(Table.class);
+        if (table == null) {
+            throw new OtsException("the table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.index())) {
+            throw new OtsException("the index of table annotation is absent");
+        }
+        SearchQuery searchQuery = query.searchQuery();
+        SearchRequest.ColumnsToGet columnsToGet = new SearchRequest.ColumnsToGet();
+        if (CollectionUtils.isNotEmpty(query.columns())) {
+            columnsToGet.setColumns(query.columns());
+        } else {
+            columnsToGet.setReturnAll(true);
+        }
+        SearchRequest request = new SearchRequest(table.name(), table.index(), searchQuery);
+        request.setColumnsToGet(columnsToGet);
+        SearchResponse response = syncClient.search(request);
+
+        IndexSearchReply<T> reply = new IndexSearchReply<>();
+        response.getRows().stream()
+            .map(row -> OtsUtils.build(row, clazz))
+            .filter(Objects::nonNull)
+            .forEach(reply::add);
+        reply.totalCount(response.getTotalCount());
+        reply.allSuccess(response.isAllSuccess());
+        return reply;
+    }
+
     /**
      * 构造TableStore插入行
      *
@@ -180,9 +223,11 @@ public class TableStoreServiceImpl implements TableStoreService {
     private <T> RowPutChange rowPutChange(T data) {
         Table table = data.getClass().getAnnotation(Table.class);
         if (table == null) {
-            throw new RuntimeException("the data have no table annotation");
+            throw new OtsException("the table annotation is absent");
         }
-
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
+        }
         List<PrimaryKeyColumn> primaryKeyColumns = Lists.newArrayList();
         List<Column> columns = Lists.newArrayList();
 
@@ -220,7 +265,10 @@ public class TableStoreServiceImpl implements TableStoreService {
     private <T> RowUpdateChange rowUpdateChange(T data, boolean deleteNull) {
         Table table = data.getClass().getAnnotation(Table.class);
         if (table == null) {
-            throw new RuntimeException("the data have no table annotation");
+            throw new OtsException("the table annotation is absent");
+        }
+        if (StringUtils.isBlank(table.name())) {
+            throw new OtsException("the name of table annotation is absent");
         }
         String tableName = table.name();
         RowUpdateChange rowUpdateChange = new RowUpdateChange(tableName);
@@ -295,16 +343,5 @@ public class TableStoreServiceImpl implements TableStoreService {
         }
         getRangeRequest.setRangeRowQueryCriteria(criteria);
         return syncClient.getRange(getRangeRequest);
-    }
-
-    /**
-     * 获取泛型对象Class
-     *
-     * @param <T> 泛型
-     * @return 泛型对象Class
-     */
-    @SuppressWarnings(value = "unchecked")
-    private <T> Class<T> getGenericsClass() {
-        return (Class<T>)((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 }

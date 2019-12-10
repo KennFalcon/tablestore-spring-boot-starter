@@ -2,10 +2,7 @@ package org.springframework.boot.autoconfigure.tablestore.service;
 
 import com.alicloud.openservices.tablestore.model.*;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.boot.autoconfigure.tablestore.model.BatchGetQuery;
-import org.springframework.boot.autoconfigure.tablestore.model.BatchGetReply;
-import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
-import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
+import org.springframework.boot.autoconfigure.tablestore.model.*;
 
 import java.util.List;
 
@@ -42,18 +39,18 @@ public interface TableStoreService {
      * 从TableStore中删除数据
      *
      * @param table     表名
-     * @param keyPairs  主键键值对
+     * @param key       主键
      * @param condition 条件
      * @return 返回Delete响应
      */
-    <T> DeleteRowResponse delete(String table, T keyPairs, Condition condition);
+    <T> DeleteRowResponse delete(String table, T key, Condition condition);
 
     /**
      * 从TableStore获取数据
      *
      * @param key         主键
      * @param columnNames 需要返回的列集合
-     * @param clazz 泛型类型
+     * @param clazz       泛型类型
      * @param <T>         主键泛型
      * @param <U>         返回值泛型
      * @return 返回Get响应
@@ -98,4 +95,14 @@ public interface TableStoreService {
      * @return 返回batch响应
      */
     <T> BatchGetReply<T> batchGet(BatchGetQuery query, Class<T> clazz);
+
+    /**
+     * 从TableStore查询数据
+     *
+     * @param query 查询请求
+     * @param clazz 泛型类型
+     * @param <T>   泛型
+     * @return 返回查询响应
+     */
+    <T> IndexSearchReply<T> search(IndexSearchQuery query, Class<T> clazz);
 }
