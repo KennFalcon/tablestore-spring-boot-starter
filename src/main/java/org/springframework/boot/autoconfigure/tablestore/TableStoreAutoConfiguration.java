@@ -32,7 +32,7 @@ public class TableStoreAutoConfiguration {
         return new TableStoreServiceImpl(syncClient);
     }
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = {"syncClient"})
     public SyncClient syncClient() {
         return new SyncClient(properties.getEndpoint(),
@@ -41,7 +41,7 @@ public class TableStoreAutoConfiguration {
             properties.getInstance());
     }
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = {"tunnelClient"})
     public TunnelClient tunnelClient() {
         return new TunnelClient(properties.getEndpoint(),

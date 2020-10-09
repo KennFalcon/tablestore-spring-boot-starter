@@ -1,5 +1,6 @@
 package org.springframework.boot.autoconfigure.tablestore.annotation;
 
+import org.springframework.boot.autoconfigure.tablestore.enums.OtsColumnType;
 import org.springframework.boot.autoconfigure.tablestore.utils.compress.NoCompress;
 
 import java.lang.annotation.*;
@@ -18,14 +19,14 @@ public @interface OtsColumn {
     /**
      * Primary key or not (default false)
      *
-     * @return
+     * @return true of false
      */
     boolean primaryKey() default false;
 
     /**
      * Auto increase primary key or not (default false)
      *
-     * @return
+     * @return true of false
      */
     boolean autoIncrease() default false;
 
@@ -39,42 +40,28 @@ public @interface OtsColumn {
     /**
      * Writable or not
      *
-     * @return
+     * @return true of false
      */
     boolean writable() default true;
 
     /**
      * Readable or not
      *
-     * @return
+     * @return true of false
      */
     boolean readable() default true;
 
     /**
-     * Field class (default self class)
+     * Ots store type
      *
-     * @return field class type
+     * @return store type
      */
-    Class<?> clazz() default void.class;
-
-    /**
-     * Array child element class
-     *
-     * @return element class type
-     */
-    Class<?> elementClazz() default void.class;
-
-    /**
-     * Charset (default utf-8）
-     *
-     * @return element charset
-     */
-    String charset() default "utf-8";
+    OtsColumnType type() default OtsColumnType.NONE;
 
     /**
      * Compress class (default null)
      *
-     * @return
+     * @return compress
      */
     Class<?> compress() default NoCompress.class;
 }

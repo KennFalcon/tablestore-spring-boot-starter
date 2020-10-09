@@ -1,26 +1,60 @@
 package org.springframework.boot.autoconfigure.tablestore.service.impl;
 
 import com.alicloud.openservices.tablestore.SyncClient;
-import com.alicloud.openservices.tablestore.model.*;
+import com.alicloud.openservices.tablestore.model.BatchGetRowRequest;
+import com.alicloud.openservices.tablestore.model.BatchGetRowResponse;
+import com.alicloud.openservices.tablestore.model.BatchWriteRowRequest;
+import com.alicloud.openservices.tablestore.model.BatchWriteRowResponse;
+import com.alicloud.openservices.tablestore.model.Column;
+import com.alicloud.openservices.tablestore.model.ColumnValue;
+import com.alicloud.openservices.tablestore.model.Condition;
+import com.alicloud.openservices.tablestore.model.DeleteRowRequest;
+import com.alicloud.openservices.tablestore.model.DeleteRowResponse;
+import com.alicloud.openservices.tablestore.model.Direction;
+import com.alicloud.openservices.tablestore.model.GetRangeRequest;
+import com.alicloud.openservices.tablestore.model.GetRangeResponse;
+import com.alicloud.openservices.tablestore.model.GetRowRequest;
+import com.alicloud.openservices.tablestore.model.GetRowResponse;
+import com.alicloud.openservices.tablestore.model.MultiRowQueryCriteria;
+import com.alicloud.openservices.tablestore.model.PrimaryKey;
+import com.alicloud.openservices.tablestore.model.PrimaryKeyColumn;
+import com.alicloud.openservices.tablestore.model.PrimaryKeyValue;
+import com.alicloud.openservices.tablestore.model.PutRowRequest;
+import com.alicloud.openservices.tablestore.model.PutRowResponse;
+import com.alicloud.openservices.tablestore.model.RangeRowQueryCriteria;
+import com.alicloud.openservices.tablestore.model.Row;
+import com.alicloud.openservices.tablestore.model.RowDeleteChange;
+import com.alicloud.openservices.tablestore.model.RowPutChange;
+import com.alicloud.openservices.tablestore.model.RowUpdateChange;
+import com.alicloud.openservices.tablestore.model.SingleRowQueryCriteria;
+import com.alicloud.openservices.tablestore.model.UpdateRowRequest;
+import com.alicloud.openservices.tablestore.model.UpdateRowResponse;
 import com.alicloud.openservices.tablestore.model.search.SearchQuery;
 import com.alicloud.openservices.tablestore.model.search.SearchRequest;
 import com.alicloud.openservices.tablestore.model.search.SearchResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
 import org.springframework.boot.autoconfigure.tablestore.annotation.Table;
 import org.springframework.boot.autoconfigure.tablestore.exception.OtsException;
-import org.springframework.boot.autoconfigure.tablestore.model.*;
+import org.springframework.boot.autoconfigure.tablestore.model.BatchGetQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.BatchGetReply;
+import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchReply;
+import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
+import org.springframework.boot.autoconfigure.tablestore.model.internal.FieldInfo;
 import org.springframework.boot.autoconfigure.tablestore.service.TableStoreService;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
+import org.springframework.boot.autoconfigure.tablestore.utils.FieldUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.OtsUtils;
 
-import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -29,10 +63,13 @@ import java.util.Objects;
  * @author: Kenn
  * @create: 2019-12-05 18:57
  */
-@AllArgsConstructor
 public class TableStoreServiceImpl implements TableStoreService {
 
-    private SyncClient syncClient;
+    private final SyncClient syncClient;
+
+    public TableStoreServiceImpl(SyncClient syncClient) {
+        this.syncClient = syncClient;
+    }
 
     @Override
     public <T> PutRowResponse put(T data, Condition condition) {
@@ -123,15 +160,15 @@ public class TableStoreServiceImpl implements TableStoreService {
         int batchSize = Math.min(query.limit(), 100);
         while (start != null) {
             GetRangeResponse response = getRange(table.name(), start, query.endPrimaryKey(), query.columnNames(),
-                query.direction(), batchSize);
+                    query.direction(), batchSize);
             if (response == null || response.getRows() == null) {
                 reply.nextStartPrimaryKey(null);
                 break;
             }
             response.getRows().stream()
-                .map(row -> OtsUtils.build(row, clazz))
-                .filter(Objects::nonNull)
-                .forEach(reply::add);
+                    .map(row -> OtsUtils.build(row, clazz))
+                    .filter(Objects::nonNull)
+                    .forEach(reply::add);
             start = response.getNextStartPrimaryKey();
             if (query.limit() > 0) {
                 batchSize = Math.min(query.limit() - reply.records().size(), 500);
@@ -169,13 +206,13 @@ public class TableStoreServiceImpl implements TableStoreService {
         }
         BatchGetReply<T> reply = new BatchGetReply<>();
         response.getSucceedRows().stream()
-            .map(BatchGetRowResponse.RowResult::getRow)
-            .filter(Objects::nonNull)
-            .map(row -> OtsUtils.build(row, clazz))
-            .filter(Objects::nonNull)
-            .forEach(reply::add);
+                .map(BatchGetRowResponse.RowResult::getRow)
+                .filter(Objects::nonNull)
+                .map(row -> OtsUtils.build(row, clazz))
+                .filter(Objects::nonNull)
+                .forEach(reply::add);
         response.getFailedRows().forEach(
-            result -> reply.addError(Pair.of(result.getRow().getPrimaryKey(), result.getError())));
+                result -> reply.addError(Pair.of(result.getRow().getPrimaryKey(), result.getError())));
         return reply;
     }
 
@@ -205,9 +242,9 @@ public class TableStoreServiceImpl implements TableStoreService {
 
         IndexSearchReply<T> reply = new IndexSearchReply<>();
         response.getRows().stream()
-            .map(row -> OtsUtils.build(row, clazz))
-            .filter(Objects::nonNull)
-            .forEach(reply::add);
+                .map(row -> OtsUtils.build(row, clazz))
+                .filter(Objects::nonNull)
+                .forEach(reply::add);
         reply.totalCount(response.getTotalCount());
         reply.allSuccess(response.isAllSuccess());
         return reply;
@@ -220,6 +257,7 @@ public class TableStoreServiceImpl implements TableStoreService {
      * @param <T>  泛型
      * @return 返回TableStore插入行变更
      */
+    @SuppressWarnings(value = "unchecked")
     private <T> RowPutChange rowPutChange(T data) {
         Table table = data.getClass().getAnnotation(Table.class);
         if (table == null) {
@@ -231,22 +269,29 @@ public class TableStoreServiceImpl implements TableStoreService {
         List<PrimaryKeyColumn> primaryKeyColumns = Lists.newArrayList();
         List<Column> columns = Lists.newArrayList();
 
-        Field[] fields = data.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            String fieldName = field.getName();
-            Object value = ColumnUtils.invokeGetValue(data, fieldName);
+        Pair<Map<String, FieldInfo>, Boolean> declaredFieldInfo = FieldUtils.getDeclaredFields(data.getClass());
+        declaredFieldInfo.getKey().forEach((columnName, fieldInfo) -> {
+            Object value = FieldUtils.invokeRead(fieldInfo.field(), data);
             if (value == null) {
-                continue;
+                return;
             }
-            OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
-            if (otsColumn != null && !otsColumn.writable()) {
-                continue;
+            if (fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().writable()) {
+                return;
             }
-            String columnName = ColumnUtils.getColumnName(fieldName, otsColumn);
-            if (otsColumn != null && otsColumn.primaryKey()) {
-                setPrimaryColumns(otsColumn, columnName, value, primaryKeyColumns);
+            if (fieldInfo.otsColumn() != null && fieldInfo.otsColumn().primaryKey()) {
+                setPrimaryColumns(fieldInfo.otsColumn(), columnName, value, primaryKeyColumns);
             } else {
-                setColumns(otsColumn, columnName, value, columns);
+                setColumns(fieldInfo.otsColumn(), columnName, value, columns);
+            }
+        });
+        if (declaredFieldInfo.getValue()) {
+            Map<String, Object> values = (Map<String, Object>) FieldUtils.invokeRead("dynamicColumns", data);
+            if (MapUtils.isNotEmpty(values)) {
+                values.forEach((key, value) -> {
+                    if (value != null) {
+                        setColumns(null, key, value, columns);
+                    }
+                });
             }
         }
         String tableName = table.name();
@@ -262,6 +307,7 @@ public class TableStoreServiceImpl implements TableStoreService {
      * @param <T>  泛型
      * @return 返回TableStore更新行变更
      */
+    @SuppressWarnings(value = "unchecked")
     private <T> RowUpdateChange rowUpdateChange(T data, boolean deleteNull) {
         Table table = data.getClass().getAnnotation(Table.class);
         if (table == null) {
@@ -274,32 +320,42 @@ public class TableStoreServiceImpl implements TableStoreService {
         RowUpdateChange rowUpdateChange = new RowUpdateChange(tableName);
 
         List<PrimaryKeyColumn> primaryKeyColumns = Lists.newArrayList();
-        List<com.alicloud.openservices.tablestore.model.Column> columns = Lists.newArrayList();
+        List<Column> columns = Lists.newArrayList();
 
-        Field[] fields = data.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            if (field.getAnnotation(OtsColumn.class) == null) {
-                continue;
+        Pair<Map<String, FieldInfo>, Boolean> declaredFieldInfo = FieldUtils.getDeclaredFields(data.getClass());
+        declaredFieldInfo.getKey().forEach((columnName, fieldInfo) -> {
+            if (fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().writable()) {
+                return;
             }
-            OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
-            if (otsColumn != null && !otsColumn.writable()) {
-                continue;
-            }
-            String fieldName = field.getName();
-            String columnName = ColumnUtils.getColumnName(fieldName, otsColumn);
-            Object value = ColumnUtils.invokeGetValue(data, fieldName);
+            Object value = FieldUtils.invokeRead(fieldInfo.field(), data);
             if (value == null) {
-                if (deleteNull && otsColumn != null && !otsColumn.primaryKey()) {
+                if (deleteNull && fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().primaryKey()) {
                     rowUpdateChange.deleteColumns(columnName);
                 }
-                continue;
+                return;
             }
-            if (otsColumn != null && otsColumn.primaryKey()) {
-                setPrimaryColumns(otsColumn, columnName, value, primaryKeyColumns);
+            if (fieldInfo.otsColumn() != null && fieldInfo.otsColumn().primaryKey()) {
+                setPrimaryColumns(fieldInfo.otsColumn(), columnName, value, primaryKeyColumns);
             } else {
-                setColumns(otsColumn, columnName, value, columns);
+                setColumns(fieldInfo.otsColumn(), columnName, value, columns);
+            }
+        });
+
+        if (declaredFieldInfo.getValue()) {
+            Map<String, Object> values = (Map<String, Object>) FieldUtils.invokeRead("dynamicColumns", data);
+            if (MapUtils.isNotEmpty(values)) {
+                values.forEach((key, value) -> {
+                    if (value == null) {
+                        if (deleteNull) {
+                            rowUpdateChange.deleteColumns(key);
+                        }
+                    } else {
+                        setColumns(null, key, value, columns);
+                    }
+                });
             }
         }
+
         rowUpdateChange.setPrimaryKey(new PrimaryKey(primaryKeyColumns));
         rowUpdateChange.put(columns);
         return rowUpdateChange;

@@ -1,20 +1,13 @@
 package org.springframework.boot.autoconfigure.tablestore.utils;
 
 import com.alicloud.openservices.tablestore.model.*;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.boot.autoconfigure.tablestore.exception.OtsException;
+import org.springframework.boot.autoconfigure.tablestore.model.internal.FieldInfo;
 
-import java.beans.IntrospectionException;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @project: tablestore-spring-boot-starter
@@ -42,40 +35,13 @@ public class OtsUtils {
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             throw new OtsException("reflect instance error, class: %s, primary key: %s", e, clazz.getName(), row.getPrimaryKey().toString());
         }
-        List<Field> fields = getDeclaredFields(clazz);
-        for (Field field : fields) {
-            String fieldName = field.getName();
-            PropertyDescriptor pd;
-            try {
-                pd = new PropertyDescriptor(fieldName, clazz);
-            } catch (IntrospectionException e) {
-                throw new OtsException("reflect error, class: %s, field: %s", e, data.getClass().getName(), fieldName);
-            }
-            Method method = pd.getWriteMethod();
-            OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
-            if (otsColumn != null && !otsColumn.readable()) {
-                continue;
-            }
-            String columnName = ColumnUtils.getColumnName(fieldName, otsColumn);
-            Object value = null;
-            if (otsColumn != null && otsColumn.primaryKey()) {
-                PrimaryKeyColumn primaryKeyColumn = row.getPrimaryKey().getPrimaryKeyColumn(columnName);
-                if (primaryKeyColumn != null) {
-                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn, field.getType(), field.getGenericType());
-
-                }
-            } else {
-                Column column = row.getLatestColumn(columnName);
-                if (column == null) {
-                    continue;
-                }
-                value = ColumnUtils.getValue(column, otsColumn, field.getType(), field.getGenericType());
-            }
-            try {
-                method.invoke(data, value);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new OtsException("reflect error, class: %s, field: %s", e, data.getClass().getName(), fieldName);
-            }
+        Pair<Map<String, FieldInfo>, Boolean> fieldInfos = FieldUtils.getDeclaredFields(data.getClass());
+        for (PrimaryKeyColumn primaryKeyColumn : row.getPrimaryKey().getPrimaryKeyColumns()) {
+            fill(data, primaryKeyColumn, fieldInfos);
+        }
+        Method addDynamicMethod = fieldInfos.getValue() ? FieldUtils.getMethod(clazz, "addDynamicColumn", String.class, ColumnType.class, Object.class) : null;
+        for (Column column : row.getColumns()) {
+            fill(data, column, fieldInfos, addDynamicMethod);
         }
         return data;
     }
@@ -98,68 +64,51 @@ public class OtsUtils {
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new OtsException("reflect instance error, class: %s, primary key: %s", e, clazz.getName(), record.getPrimaryKey().toString());
         }
-        List<Field> fields = getDeclaredFields(clazz);
-
-        Map<String, Column> columnMap = record.getColumns().stream()
-            .map(RecordColumn::getColumn)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(Column::getName, column -> column));
-
-        for (Field field : fields) {
-            String fieldName = field.getName();
-            PropertyDescriptor pd;
-            try {
-                pd = new PropertyDescriptor(fieldName, clazz);
-            } catch (IntrospectionException e) {
-                throw new OtsException("reflect error, class: %s, field: %s", e, data.getClass().getName(), fieldName);
-            }
-            Method method = pd.getWriteMethod();
-            OtsColumn otsColumn = field.getAnnotation(OtsColumn.class);
-            if (otsColumn != null && !otsColumn.readable()) {
-                continue;
-            }
-            String columnName = ColumnUtils.getColumnName(fieldName, otsColumn);
-            Object value = null;
-            if (otsColumn != null && otsColumn.primaryKey()) {
-                PrimaryKeyColumn primaryKeyColumn = record.getPrimaryKey().getPrimaryKeyColumn(columnName);
-                if (primaryKeyColumn != null) {
-                    value = ColumnUtils.getValue(primaryKeyColumn, otsColumn, field.getType(), field.getGenericType());
-
-                }
-            } else {
-                if (!columnMap.containsKey(columnName)) {
-                    continue;
-                }
-                Column column = columnMap.get(columnName);
-                value = ColumnUtils.getValue(column, otsColumn, field.getType(), field.getGenericType());
-            }
-            try {
-                method.invoke(data, value);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new OtsException("reflect error, class: %s, field: %s", e, data.getClass().getName(), fieldName);
-            }
+        Pair<Map<String, FieldInfo>, Boolean> fieldInfos = FieldUtils.getDeclaredFields(data.getClass());
+        for (PrimaryKeyColumn primaryKeyColumn : record.getPrimaryKey().getPrimaryKeyColumns()) {
+            fill(data, primaryKeyColumn, fieldInfos);
+        }
+        Method addDynamicMethod = fieldInfos.getValue() ? FieldUtils.getMethod(clazz, "addDynamicColumn", String.class, ColumnType.class, Object.class) : null;
+        for (RecordColumn recordColumn : record.getColumns()) {
+            Column column = recordColumn.getColumn();
+            fill(data, column, fieldInfos, addDynamicMethod);
         }
         return data;
     }
 
-    public static boolean isErrorRetryable(String errorCode) {
-        return StringUtils.equals(errorCode, "OTSInternalServerError") ||
-            StringUtils.equals(errorCode, "OTSQuotaExhausted") ||
-            StringUtils.equals(errorCode, "OTSServerBusy") ||
-            StringUtils.equals(errorCode, "OTSPartitionUnavailable") ||
-            StringUtils.equals(errorCode, "OTSTimeout") ||
-            StringUtils.equals(errorCode, "OTSServerUnavailable") ||
-            StringUtils.equals(errorCode, "OTSRowOperationConflict") ||
-            StringUtils.equals(errorCode, "OTSTableNotReady") ||
-            StringUtils.equals(errorCode, "OTSCapacityUnitExhausted");
+    private static <T> void fill(T data, PrimaryKeyColumn column, Pair<Map<String, FieldInfo>, Boolean> fieldInfos) {
+        if (fieldInfos.getKey().containsKey(column.getName())) {
+            FieldInfo fieldInfo = fieldInfos.getKey().get(column.getName());
+            if (fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().readable()) {
+                return;
+            }
+            Object value = ColumnUtils.getValue(column, fieldInfo.otsColumn(), fieldInfo.field().getType(), fieldInfo.field().getGenericType());
+            FieldUtils.invokeWrite(fieldInfo.field(), data, value);
+        }
     }
 
-    private static List<Field> getDeclaredFields(Class<?> clazz) {
-        List<Field> fields = Lists.newArrayList(clazz.getDeclaredFields());
-        Class<?> superClass = clazz.getSuperclass();
-        if (!Object.class.isAssignableFrom(superClass)) {
-            fields.addAll(getDeclaredFields(superClass));
+    private static <T> void fill(T data, Column column, Pair<Map<String, FieldInfo>, Boolean> fieldInfos, Method method) {
+        if (fieldInfos.getKey().containsKey(column.getName())) {
+            FieldInfo fieldInfo = fieldInfos.getKey().get(column.getName());
+            if (fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().readable()) {
+                return;
+            }
+            Object value = ColumnUtils.getValue(column, fieldInfo.otsColumn(), fieldInfo.field().getType(), fieldInfo.field().getGenericType());
+            FieldUtils.invokeWrite(fieldInfo.field(), data, value);
+        } else {
+            if (fieldInfos.getValue() && method != null) {
+                Object value = ColumnUtils.getValue(column);
+                FieldUtils.invoke(method, data, column.getName(), column.getValue().getType(), value);
+            }
         }
-        return fields;
+    }
+
+    private <T> void fill(T data, Column column, Pair<Map<String, FieldInfo>, Boolean> fieldInfos) {
+        FieldInfo fieldInfo = fieldInfos.getKey().get(column.getName());
+        if (fieldInfo.otsColumn() != null && !fieldInfo.otsColumn().readable()) {
+            return;
+        }
+        Object value = ColumnUtils.getValue(column, fieldInfo.otsColumn(), fieldInfo.field().getType(), fieldInfo.field().getGenericType());
+        FieldUtils.invokeWrite(fieldInfo.field(), data, value);
     }
 }

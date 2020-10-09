@@ -2,9 +2,6 @@ package org.springframework.boot.autoconfigure.tablestore.model;
 
 import com.alicloud.openservices.tablestore.model.Direction;
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 
 import java.util.List;
@@ -15,9 +12,6 @@ import java.util.List;
  * @author: Kenn
  * @create: 2019-12-05 15:31
  */
-@Getter
-@Setter
-@Accessors(fluent = true)
 public class RangeGetQuery {
 
     private PrimaryKey startPrimaryKey;
@@ -44,6 +38,30 @@ public class RangeGetQuery {
 
     public <T> void endPrimaryKey(T key) {
         endPrimaryKey = ColumnUtils.primaryKey(key, KeyType.END, direction);
+    }
+
+    public List<String> columnNames() {
+        return columnNames;
+    }
+
+    public void columnNames(List<String> columnNames) {
+        this.columnNames = columnNames;
+    }
+
+    public int limit() {
+        return limit;
+    }
+
+    public void limit(int limit) {
+        this.limit = limit;
+    }
+
+    public Direction direction() {
+        return direction;
+    }
+
+    public void direction(Direction direction) {
+        this.direction = direction;
     }
 
     public enum KeyType {

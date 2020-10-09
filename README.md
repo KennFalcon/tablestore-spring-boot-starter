@@ -1,7 +1,7 @@
 # tablestore-spring-boot-starter
 Aliyun TableStore Spring Boot Starter
 
-基于阿里云表格存储Spring Boot自动集成(暂未完成)
+基于阿里云TableStore(OTS) Spring Boot自动集成(暂未完成)
 
 ----------
 
@@ -130,27 +130,13 @@ public @interface OtsColumn {
      * @return
      */
     boolean readable() default true;
-
+    
     /**
-     * 字段类型（默认字段本身类型）
+     * 存储到OTS中的类型
      *
-     * @return field class type
+     * @return
      */
-    Class<?> clazz() default void.class;
-
-    /**
-     * 字段子类型（一般当为List时设置）
-     *
-     * @return element class type
-     */
-    Class<?> elementClazz() default void.class;
-
-    /**
-     * 字符集（默认utf-8），一般是byte[]转String或String转byte[]时设置
-     *
-     * @return element charset
-     */
-    String charset() default "utf-8";
+    OtsColumnType type() default OtsColumnType.NONE;
 
     /**
      * 压缩（默认不压缩），一般存放byte[]时设置
@@ -160,6 +146,32 @@ public @interface OtsColumn {
     Class<?> compress() default NoCompress.class;
 }
 ```
+
+OtsColumnType与OTS类型对应表
+
+| OtsColumnType  | PrimaryKeyType    | ColumnType  |
+| :------------- | :---------------- | :---------- |
+| STRING         | STRING            | STRING      |
+| INTEGER        | INTEGER           | INTEGER     |
+| BOOLEAN        | _**Not support**_ | BOOLEAN     |
+| DOUBLE         | _**Not support**_ | DOUBLE      |
+| BINARY         | BINARY            | BINARY      |
+
+若OtsColumnType为空时，字段类型对应表
+
+| Java Data Type      | PrimaryKeyType    | ColumnType  |
+| :------------------ | :---------------- | :---------- |
+| Short(short)        | INTEGER           | INTEGER     |
+| Integer(int)        | INTEGER           | INTEGER     |
+| Long(long)          | INTEGER           | INTEGER     |
+| Float(float)        | _**Not support**_ | DOUBLE      |
+| Double(double)      | _**Not support**_ | DOUBLE      |
+| Boolean(boolean)    | _**Not support**_ | BOOLEAN     |
+| String              | STRING            | STRING      |
+| Byte\[\](byte\[\])  | BINARY            | BINARY      |
+
+其他类型写入获取读取时，会先转为JSON，以STRING类型写入或读取OTS
+
 
 ### 2. 接口说明
 

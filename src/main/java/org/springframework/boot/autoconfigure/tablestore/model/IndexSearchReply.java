@@ -1,9 +1,6 @@
 package org.springframework.boot.autoconfigure.tablestore.model;
 
 import com.google.common.collect.Lists;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.List;
 
@@ -13,9 +10,6 @@ import java.util.List;
  * @author: Kenn
  * @create: 2019-12-09 14:05
  */
-@Getter
-@Setter
-@Accessors(fluent = true)
 public class IndexSearchReply<T> {
 
     private long totalCount;
@@ -26,5 +20,29 @@ public class IndexSearchReply<T> {
 
     public void add(T record) {
         records.add(record);
+    }
+
+    public long totalCount() {
+        return totalCount;
+    }
+
+    public void totalCount(long totalCount) {
+        this.totalCount = totalCount;
+    }
+
+    public boolean allSuccess() {
+        return allSuccess;
+    }
+
+    public void allSuccess(boolean allSuccess) {
+        this.allSuccess = allSuccess;
+    }
+
+    public List<T> records() {
+        return records;
+    }
+
+    public void records(List<T> records) {
+        this.records = records;
     }
 }

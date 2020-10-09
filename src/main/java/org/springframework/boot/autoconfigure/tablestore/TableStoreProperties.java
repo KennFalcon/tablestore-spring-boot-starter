@@ -1,7 +1,5 @@
 package org.springframework.boot.autoconfigure.tablestore;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -10,8 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author: Kenn
  * @create: 2019-02-28 10:53
  */
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "tablestore")
 public class TableStoreProperties {
     /**
@@ -30,4 +26,36 @@ public class TableStoreProperties {
      * 阿里云表格存储实例名
      */
     private String instance;
+
+    public String getAk() {
+        return ak;
+    }
+
+    public void setAk(String ak) {
+        this.ak = ak;
+    }
+
+    public String getSk() {
+        return sk;
+    }
+
+    public void setSk(String sk) {
+        this.sk = sk;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public String getInstance() {
+        return instance;
+    }
+
+    public void setInstance(String instance) {
+        this.instance = instance;
+    }
 }
