@@ -1,10 +1,9 @@
 package org.springframework.boot.autoconfigure.tablestore.enums;
 
 /**
- * @project: test-tablestore-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-10 16:52
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public enum OtsColumnType {
     /**

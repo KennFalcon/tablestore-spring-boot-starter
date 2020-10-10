@@ -1,10 +1,9 @@
 package org.springframework.boot.autoconfigure.tablestore.exception;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-06 14:23
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class OtsException extends RuntimeException {
 

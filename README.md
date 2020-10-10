@@ -11,9 +11,9 @@ Aliyun TableStore Spring Boot Starter
 1. pom.xml中引入
 ```xml
 <dependency>
-    <groupId>com.kennfalcon.data</groupId>
+    <groupId>io.github.kennfalcon</groupId>
     <artifactId>tablestore-spring-boot-starter</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 

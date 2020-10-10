@@ -9,10 +9,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-06 16:35
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class GzipCompress {
 

@@ -8,10 +8,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.List;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-05 17:39
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class BatchGetReply<T> {
 

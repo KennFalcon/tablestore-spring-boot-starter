@@ -12,10 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-12 10:19
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public abstract class DynamicColumn {
 

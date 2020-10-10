@@ -1,16 +1,24 @@
 package org.springframework.boot.autoconfigure.tablestore.service;
 
-import com.alicloud.openservices.tablestore.model.*;
+import com.alicloud.openservices.tablestore.model.BatchWriteRowResponse;
+import com.alicloud.openservices.tablestore.model.Condition;
+import com.alicloud.openservices.tablestore.model.DeleteRowResponse;
+import com.alicloud.openservices.tablestore.model.PutRowResponse;
+import com.alicloud.openservices.tablestore.model.UpdateRowResponse;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.boot.autoconfigure.tablestore.model.*;
+import org.springframework.boot.autoconfigure.tablestore.model.BatchGetQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.BatchGetReply;
+import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchReply;
+import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
+import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
 
 import java.util.List;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-02-28 10:58
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public interface TableStoreService {
 
@@ -41,6 +49,7 @@ public interface TableStoreService {
      * @param table     表名
      * @param key       主键
      * @param condition 条件
+     * @param <T>       泛型
      * @return 返回Delete响应
      */
     <T> DeleteRowResponse delete(String table, T key, Condition condition);

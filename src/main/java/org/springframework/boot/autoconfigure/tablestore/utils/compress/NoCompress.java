@@ -1,10 +1,9 @@
 package org.springframework.boot.autoconfigure.tablestore.utils.compress;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-06 17:11
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class NoCompress {
 

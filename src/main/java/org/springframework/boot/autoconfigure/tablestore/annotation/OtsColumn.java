@@ -6,10 +6,9 @@ import org.springframework.boot.autoconfigure.tablestore.utils.compress.NoCompre
 import java.lang.annotation.*;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description: TableStore Column Annotation
- * @author: Kenn
- * @create: 2018-11-24 14:27
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)

@@ -1,16 +1,13 @@
 package org.springframework.boot.autoconfigure.tablestore.model;
 
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
-import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-05 17:39
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class BatchGetQuery {
 

@@ -5,10 +5,9 @@ import org.springframework.boot.autoconfigure.tablestore.annotation.OtsColumn;
 import java.lang.reflect.Field;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-12 17:07
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class FieldInfo {
 

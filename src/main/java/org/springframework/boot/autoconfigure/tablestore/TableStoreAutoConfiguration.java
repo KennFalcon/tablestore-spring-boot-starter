@@ -13,10 +13,9 @@ import org.springframework.context.annotation.Configuration;
 import javax.annotation.Resource;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-02-28 11:50
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 @Configuration
 @ConditionalOnClass({TableStoreService.class, SyncClient.class, TunnelClient.class})

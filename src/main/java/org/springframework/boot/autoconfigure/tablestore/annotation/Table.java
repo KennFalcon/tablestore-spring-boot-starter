@@ -3,10 +3,9 @@ package org.springframework.boot.autoconfigure.tablestore.annotation;
 import java.lang.annotation.*;
 
 /**
- * @project: common-data-utils
- * @description: 表注解
- * @author: Kenn
- * @create: 2018-11-24 14:27
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

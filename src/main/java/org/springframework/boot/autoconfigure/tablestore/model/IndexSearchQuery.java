@@ -9,10 +9,9 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-09 13:54
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class IndexSearchQuery {
 

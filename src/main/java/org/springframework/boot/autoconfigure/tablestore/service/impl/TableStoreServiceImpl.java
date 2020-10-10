@@ -58,10 +58,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-05 18:57
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class TableStoreServiceImpl implements TableStoreService {
 

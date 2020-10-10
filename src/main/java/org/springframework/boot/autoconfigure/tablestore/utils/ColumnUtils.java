@@ -18,10 +18,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description: OTS字段工具类
- * @author: Kenn
- * @create: 2018-11-24 14:27
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public class ColumnUtils {
 

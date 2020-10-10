@@ -3,10 +3,9 @@ package org.springframework.boot.autoconfigure.tablestore;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description: TableStore连接配置
- * @author: Kenn
- * @create: 2019-02-28 10:53
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 @ConfigurationProperties(prefix = "tablestore")
 public class TableStoreProperties {

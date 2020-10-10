@@ -9,10 +9,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
- * @project: tablestore-spring-boot-starter
- * @description:
- * @author: Kenn
- * @create: 2019-12-12 19:26
+ * Created on 2020/10/09
+ *
+ * @author Kenn
  */
 public abstract class BaseTunnelProcessor<T> implements IChannelProcessor {
 
