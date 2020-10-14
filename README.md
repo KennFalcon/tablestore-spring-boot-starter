@@ -1,7 +1,7 @@
 # tablestore-spring-boot-starter
 Aliyun TableStore Spring Boot Starter
 
-基于阿里云TableStore(OTS) Spring Boot自动集成(暂未完成)
+基于阿里云TableStore(OTS) Spring Boot自动集成
 
 ----------
 
@@ -11,9 +11,9 @@ Aliyun TableStore Spring Boot Starter
 1. pom.xml中引入
 ```xml
 <dependency>
-    <groupId>io.github.kennfalcon</groupId>
-    <artifactId>tablestore-spring-boot-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+  <groupId>io.github.kennfalcon</groupId>
+  <artifactId>tablestore-spring-boot-starter</artifactId>
+  <version>0.0.1</version>
 </dependency>
 ```
 
