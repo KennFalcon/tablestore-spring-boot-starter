@@ -5,7 +5,13 @@ plugins {
 }
 
 group = 'io.github.kennfalcon'
-version = '0.0.1-SNAPSHOT'
+
+boolean snapshot = "true" == System.getProperty("build.snapshot", "true")
+if (snapshot) {
+    version = '0.0.1-SNAPSHOT'
+} else {
+    version = '0.0.1'
+}
 
 compileJava {
     sourceCompatibility = 1.8
@@ -28,6 +34,7 @@ dependencies {
     implementation 'com.alibaba:fastjson:1.2.54'
     implementation 'com.google.guava:guava:28.0-jre'
     compileOnly 'com.aliyun.openservices:tablestore:5.7.0'
+    compileOnly 'org.xerial.snappy:snappy-java:1.1.7.7'
 }
 
 java {
@@ -38,10 +45,10 @@ java {
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            from components.java
             groupId = group
             artifactId = 'tablestore-spring-boot-starter'
             version = version
-            from components.java
             pom {
                 name = 'tablestore-spring-boot-starter'
                 description = 'Aliyun TableStore Spring Boot Starter'
@@ -76,9 +83,17 @@ publishing {
             } else {
                 url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
             }
+            def USERNAME = System.getProperty("sonatypeUsername")
+            def PASSWORD = System.getProperty("sonatypePassword")
+            if (USERNAME == null) {
+                USERNAME = sonatypeUsername
+            }
+            if (PASSWORD == null) {
+                PASSWORD = sonatypePassword
+            }
             credentials {
-                username = sonatypeUsername
-                password = sonatypePassword
+                username = USERNAME
+                password = PASSWORD
             }
         }
     }
