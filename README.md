@@ -5,6 +5,12 @@ Aliyun TableStore Spring Boot Starter
 
 ----------
 
+release:
+
+🚩 更新日志：
+1. 修改access-key-id和access-key-secret定义
+2. 新增TunnelService，用于创建、删除、查询通道
+
 使用方式
 ----------
 
@@ -13,7 +19,7 @@ Aliyun TableStore Spring Boot Starter
 <dependency>
   <groupId>io.github.kennfalcon</groupId>
   <artifactId>tablestore-spring-boot-starter</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
 </dependency>
 ```
 
@@ -22,8 +28,8 @@ Aliyun TableStore Spring Boot Starter
 tablestore:
   endpoint: https://xxx.xxx.ots.aliyuncs.com # 表格存储访问地址
   instance: xxx                              # 表格存储实例名
-  ak: xxxxx                                  # 阿里云访问AccessKeyId
-  sk: xxxxx                                  # 阿里云访问AccessKeySecret
+  access-key-id: xxxxx                       # 阿里云访问AccessKeyId
+  access-key-secret: xxxxx                   # 阿里云访问AccessKeySecret
 ```
 
 3. 使用时，会自动注入容器两个Bean
@@ -98,50 +104,36 @@ import java.lang.annotation.*;
 public @interface OtsColumn {
     /**
      * 是否是主键
-     *
-     * @return
      */
     boolean primaryKey() default false;
 
     /**
      * 是否是自增（只有主键可自增）
-     *
-     * @return
      */
     boolean autoIncrease() default false;
 
     /**
      * 表格存储存储的字段名称
-     *
-     * @return field name
      */
     String name() default "";
 
     /**
      * 是否可写
-     *
-     * @return
      */
     boolean writable() default true;
 
     /**
      * 是否可读
-     *
-     * @return
      */
     boolean readable() default true;
     
     /**
      * 存储到OTS中的类型
-     *
-     * @return
      */
     OtsColumnType type() default OtsColumnType.NONE;
 
     /**
      * 压缩（默认不压缩），一般存放byte[]时设置
-     *
-     * @return
      */
     Class<?> compress() default NoCompress.class;
 }
@@ -175,6 +167,8 @@ OtsColumnType与OTS类型对应表
 
 ### 2. 接口说明
 
+#### 2.1 TableStoreService
+
 ```java 
 <T> PutRowResponse put(T data, Condition condition)
 ```
@@ -203,5 +197,30 @@ key: 主键，支持（PrimaryKey类型，和自定义类型Bean)
 
 condition: 删除条件
 
+#### 2.2 TunnelService
 
+```java
+CreateTunnelResponse createTunnel(String tableName, String tunnelName, TunnelType tunnelType)
+```
 
+tableName: 数表名
+
+tunnelName: 通道名
+
+tunnelType: 通道类型
+
+```java
+DescribeTunnelResponse describeTunnel(String tableName, String tunnelName)
+```
+
+tableName: 数表名
+
+tunnelName: 通道名
+
+```java
+DeleteTunnelResponse deleteTunnel(String tableName, String tunnelName)
+```
+
+tableName: 数表名
+
+tunnelName: 通道名

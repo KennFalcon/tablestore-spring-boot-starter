@@ -8,9 +8,9 @@ group = 'io.github.kennfalcon'
 
 boolean snapshot = "true" == System.getProperty("build.snapshot", "true")
 if (snapshot) {
-    version = '0.0.1-SNAPSHOT'
+    version = '0.0.2-SNAPSHOT'
 } else {
-    version = '0.0.1'
+    version = '0.0.2'
 }
 
 compileJava {
@@ -20,21 +20,19 @@ compileJava {
 
 repositories {
     mavenLocal()
-    maven {
-        url = 'http://repo.maven.apache.org/maven2'
-    }
+    mavenCentral()
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter:2.1.1.RELEASE'
-    implementation 'org.springframework.boot:spring-boot-configuration-processor:2.1.1.RELEASE'
-    implementation 'org.springframework.boot:spring-boot-autoconfigure:2.1.1.RELEASE'
-    implementation 'org.apache.commons:commons-lang3:3.8'
-    implementation 'org.apache.commons:commons-collections4:4.2'
-    implementation 'com.alibaba:fastjson:1.2.54'
-    implementation 'com.google.guava:guava:28.0-jre'
-    compileOnly 'com.aliyun.openservices:tablestore:5.7.0'
-    compileOnly 'org.xerial.snappy:snappy-java:1.1.7.7'
+    implementation 'org.springframework.boot:spring-boot-starter:2.5.4'
+    implementation 'org.springframework.boot:spring-boot-configuration-processor:2.5.4'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure:2.5.4'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'com.alibaba:fastjson:1.2.78'
+    implementation 'com.google.guava:guava:30.1.1-jre'
+    compileOnly 'com.aliyun.openservices:tablestore:5.11.1'
+    compileOnly 'org.xerial.snappy:snappy-java:1.1.8.4'
 }
 
 java {
@@ -86,10 +84,10 @@ publishing {
             def USERNAME = System.getProperty("sonatypeUsername")
             def PASSWORD = System.getProperty("sonatypePassword")
             if (USERNAME == null) {
-                USERNAME = sonatypeUsername
+                USERNAME = 'sonatypeUsername'
             }
             if (PASSWORD == null) {
-                PASSWORD = sonatypePassword
+                PASSWORD = 'sonatypePassword'
             }
             credentials {
                 username = USERNAME

@@ -5,7 +5,9 @@ import com.alicloud.openservices.tablestore.TunnelClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.tablestore.service.TableStoreService;
+import org.springframework.boot.autoconfigure.tablestore.service.TunnelService;
 import org.springframework.boot.autoconfigure.tablestore.service.impl.TableStoreServiceImpl;
+import org.springframework.boot.autoconfigure.tablestore.service.impl.TunnelServiceImpl;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,12 +33,18 @@ public class TableStoreAutoConfiguration {
         return new TableStoreServiceImpl(syncClient);
     }
 
+    @Bean
+    @ConditionalOnMissingBean(name = {"tunnelService"})
+    public TunnelService tunnelService(TunnelClient tunnelClient) {
+        return new TunnelServiceImpl(tunnelClient);
+    }
+
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = {"syncClient"})
     public SyncClient syncClient() {
         return new SyncClient(properties.getEndpoint(),
-            properties.getAk(),
-            properties.getSk(),
+            properties.getAccessKeyId(),
+            properties.getAccessKeySecret(),
             properties.getInstance());
     }
 
@@ -44,8 +52,8 @@ public class TableStoreAutoConfiguration {
     @ConditionalOnMissingBean(name = {"tunnelClient"})
     public TunnelClient tunnelClient() {
         return new TunnelClient(properties.getEndpoint(),
-            properties.getAk(),
-            properties.getSk(),
+            properties.getAccessKeyId(),
+            properties.getAccessKeySecret(),
             properties.getInstance());
     }
 }

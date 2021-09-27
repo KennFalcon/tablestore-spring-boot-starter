@@ -12,11 +12,11 @@ public class TableStoreProperties {
     /**
      * 阿里云访问AK
      */
-    private String ak;
+    private String accessKeyId;
     /**
      * 阿里云访问SK
      */
-    private String sk;
+    private String accessKeySecret;
     /**
      * 阿里云表格存储服务域名地址
      */
@@ -26,20 +26,20 @@ public class TableStoreProperties {
      */
     private String instance;
 
-    public String getAk() {
-        return ak;
+    public String getAccessKeyId() {
+        return accessKeyId;
     }
 
-    public void setAk(String ak) {
-        this.ak = ak;
+    public void setAccessKeyId(String accessKeyId) {
+        this.accessKeyId = accessKeyId;
     }
 
-    public String getSk() {
-        return sk;
+    public String getAccessKeySecret() {
+        return accessKeySecret;
     }
 
-    public void setSk(String sk) {
-        this.sk = sk;
+    public void setAccessKeySecret(String accessKeySecret) {
+        this.accessKeySecret = accessKeySecret;
     }
 
     public String getEndpoint() {
