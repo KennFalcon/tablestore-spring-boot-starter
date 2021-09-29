@@ -81,17 +81,9 @@ publishing {
             } else {
                 url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
             }
-            def USERNAME = System.getProperty("sonatypeUsername")
-            def PASSWORD = System.getProperty("sonatypePassword")
-            if (USERNAME == null) {
-                USERNAME = 'sonatypeUsername'
-            }
-            if (PASSWORD == null) {
-                PASSWORD = 'sonatypePassword'
-            }
             credentials {
-                username = USERNAME
-                password = PASSWORD
+                username = sonatypeUsername
+                password = sonatypePassword
             }
         }
     }
