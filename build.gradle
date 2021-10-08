@@ -81,9 +81,11 @@ publishing {
             } else {
                 url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
             }
-            credentials {
-                username = sonatypeUsername
-                password = sonatypePassword
+            if (sonatypeUsername != null && sonatypePassword != null) {
+                credentials {
+                    username = sonatypeUsername
+                    password = sonatypePassword
+                }
             }
         }
     }
