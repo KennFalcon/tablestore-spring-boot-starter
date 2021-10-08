@@ -8,9 +8,9 @@ group = 'io.github.kennfalcon'
 
 boolean snapshot = "true" == System.getProperty("build.snapshot", "true")
 if (snapshot) {
-    version = '0.0.2-SNAPSHOT'
+    version = '0.0.3-SNAPSHOT'
 } else {
-    version = '0.0.2'
+    version = '0.0.3'
 }
 
 compileJava {

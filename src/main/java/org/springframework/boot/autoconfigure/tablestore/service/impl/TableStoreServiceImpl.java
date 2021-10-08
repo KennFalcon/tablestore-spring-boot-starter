@@ -8,8 +8,14 @@ import com.alicloud.openservices.tablestore.model.BatchWriteRowResponse;
 import com.alicloud.openservices.tablestore.model.Column;
 import com.alicloud.openservices.tablestore.model.ColumnValue;
 import com.alicloud.openservices.tablestore.model.Condition;
+import com.alicloud.openservices.tablestore.model.CreateTableRequest;
+import com.alicloud.openservices.tablestore.model.CreateTableResponse;
 import com.alicloud.openservices.tablestore.model.DeleteRowRequest;
 import com.alicloud.openservices.tablestore.model.DeleteRowResponse;
+import com.alicloud.openservices.tablestore.model.DeleteTableRequest;
+import com.alicloud.openservices.tablestore.model.DeleteTableResponse;
+import com.alicloud.openservices.tablestore.model.DescribeTableRequest;
+import com.alicloud.openservices.tablestore.model.DescribeTableResponse;
 import com.alicloud.openservices.tablestore.model.Direction;
 import com.alicloud.openservices.tablestore.model.GetRangeRequest;
 import com.alicloud.openservices.tablestore.model.GetRangeResponse;
@@ -18,6 +24,8 @@ import com.alicloud.openservices.tablestore.model.GetRowResponse;
 import com.alicloud.openservices.tablestore.model.MultiRowQueryCriteria;
 import com.alicloud.openservices.tablestore.model.PrimaryKey;
 import com.alicloud.openservices.tablestore.model.PrimaryKeyColumn;
+import com.alicloud.openservices.tablestore.model.PrimaryKeySchema;
+import com.alicloud.openservices.tablestore.model.PrimaryKeyType;
 import com.alicloud.openservices.tablestore.model.PrimaryKeyValue;
 import com.alicloud.openservices.tablestore.model.PutRowRequest;
 import com.alicloud.openservices.tablestore.model.PutRowResponse;
@@ -27,6 +35,8 @@ import com.alicloud.openservices.tablestore.model.RowDeleteChange;
 import com.alicloud.openservices.tablestore.model.RowPutChange;
 import com.alicloud.openservices.tablestore.model.RowUpdateChange;
 import com.alicloud.openservices.tablestore.model.SingleRowQueryCriteria;
+import com.alicloud.openservices.tablestore.model.TableMeta;
+import com.alicloud.openservices.tablestore.model.TableOptions;
 import com.alicloud.openservices.tablestore.model.UpdateRowRequest;
 import com.alicloud.openservices.tablestore.model.UpdateRowResponse;
 import com.alicloud.openservices.tablestore.model.search.SearchQuery;
@@ -53,6 +63,7 @@ import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.FieldUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.OtsUtils;
 
+import javax.activation.UnsupportedDataTypeException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,6 +79,41 @@ public class TableStoreServiceImpl implements TableStoreService {
 
     public TableStoreServiceImpl(SyncClient syncClient) {
         this.syncClient = syncClient;
+    }
+
+    @Override
+    public <T> CreateTableResponse createTable(String table, Class<T> clazz) throws UnsupportedDataTypeException {
+        return createTable(table, clazz, -1, 1, 86400, true);
+    }
+
+    @Override
+    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException {
+        return createTable(table, primaryKeyInfos, -1, 1, 86400, true);
+    }
+
+    @Override
+    public <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException {
+        Pair<Map<String, FieldInfo>, Boolean> declaredFieldInfo = FieldUtils.getDeclaredFields(clazz);
+        TableMeta tableMeta = tableMeta(table, declaredFieldInfo.getKey());
+        TableOptions tableOptions = tableOptions(timeToLive, maxVersion, maxTimeDeviation, allowUpdate);
+        return createTable(tableMeta, tableOptions);
+    }
+
+    @Override
+    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException {
+        TableMeta tableMeta = tableMeta(table, primaryKeyInfos);
+        TableOptions tableOptions = tableOptions(timeToLive, maxVersion, maxTimeDeviation, allowUpdate);
+        return createTable(tableMeta, tableOptions);
+    }
+
+    @Override
+    public DeleteTableResponse deleteTable(String table) {
+        return syncClient.deleteTable(new DeleteTableRequest(table));
+    }
+
+    @Override
+    public DescribeTableResponse describeTable(String table) {
+        return syncClient.describeTable(new DescribeTableRequest(table));
     }
 
     @Override
@@ -247,6 +293,61 @@ public class TableStoreServiceImpl implements TableStoreService {
         reply.totalCount(response.getTotalCount());
         reply.allSuccess(response.isAllSuccess());
         return reply;
+    }
+
+    private TableMeta tableMeta(String table, Map<String, FieldInfo> fieldInfos) throws UnsupportedDataTypeException {
+        TableMeta tableMeta = new TableMeta(table);
+        for (Map.Entry<String, FieldInfo> entry : fieldInfos.entrySet()) {
+            if (entry.getValue().otsColumn() != null && entry.getValue().otsColumn().primaryKey()) {
+                tableMeta.addPrimaryKeyColumn(primaryKeySchema(entry.getKey(), entry.getValue()));
+            }
+        }
+        return tableMeta;
+    }
+
+    private TableMeta tableMeta(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException {
+        TableMeta tableMeta = new TableMeta(table);
+        for (Pair<String, Class<?>> primaryKeyInfo : primaryKeyInfos) {
+            tableMeta.addPrimaryKeyColumn(primaryKeySchema(primaryKeyInfo.getKey(), primaryKeyInfo.getValue()));
+        }
+        return tableMeta;
+    }
+
+    private TableOptions tableOptions(int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) {
+        TableOptions tableOptions = new TableOptions(timeToLive, maxVersion, maxTimeDeviation);
+        tableOptions.setAllowUpdate(allowUpdate);
+        return tableOptions;
+    }
+
+    private CreateTableResponse createTable(TableMeta tableMeta, TableOptions tableOptions) {
+        return syncClient.createTable(new CreateTableRequest(tableMeta, tableOptions));
+    }
+
+    private PrimaryKeySchema primaryKeySchema(String name, FieldInfo fieldInfo) throws UnsupportedDataTypeException {
+        switch (fieldInfo.otsColumn().type()) {
+            case BINARY:
+                return new PrimaryKeySchema(name, PrimaryKeyType.BINARY);
+            case INTEGER:
+                return new PrimaryKeySchema(name, PrimaryKeyType.INTEGER);
+            case STRING:
+                return new PrimaryKeySchema(name, PrimaryKeyType.STRING);
+            default:
+                throw new UnsupportedDataTypeException("unsupported primary key type of key [" + name + "]");
+        }
+    }
+
+    private PrimaryKeySchema primaryKeySchema(String name, Class<?> dataType) throws UnsupportedDataTypeException {
+        if (dataType.isAssignableFrom(byte[].class)) {
+            return new PrimaryKeySchema(name, PrimaryKeyType.BINARY);
+        } else if (dataType.isAssignableFrom(Long.class)) {
+            return new PrimaryKeySchema(name, PrimaryKeyType.INTEGER);
+        } else if (dataType.isAssignableFrom(Integer.class)) {
+            return new PrimaryKeySchema(name, PrimaryKeyType.INTEGER);
+        } else if (dataType.isAssignableFrom(String.class)) {
+            return new PrimaryKeySchema(name, PrimaryKeyType.STRING);
+        } else {
+            throw new UnsupportedDataTypeException("unsupported primary key type of key [" + name + "]");
+        }
     }
 
     /**

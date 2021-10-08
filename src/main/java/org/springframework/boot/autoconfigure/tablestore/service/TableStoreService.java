@@ -2,7 +2,10 @@ package org.springframework.boot.autoconfigure.tablestore.service;
 
 import com.alicloud.openservices.tablestore.model.BatchWriteRowResponse;
 import com.alicloud.openservices.tablestore.model.Condition;
+import com.alicloud.openservices.tablestore.model.CreateTableResponse;
 import com.alicloud.openservices.tablestore.model.DeleteRowResponse;
+import com.alicloud.openservices.tablestore.model.DeleteTableResponse;
+import com.alicloud.openservices.tablestore.model.DescribeTableResponse;
 import com.alicloud.openservices.tablestore.model.PutRowResponse;
 import com.alicloud.openservices.tablestore.model.UpdateRowResponse;
 import org.apache.commons.lang3.tuple.Pair;
@@ -13,6 +16,7 @@ import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchReply;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
 
+import javax.activation.UnsupportedDataTypeException;
 import java.util.List;
 
 /**
@@ -21,6 +25,69 @@ import java.util.List;
  * @author Kenn
  */
 public interface TableStoreService {
+    /**
+     * 在TableStore中创建表
+     *
+     * @param table 表名
+     * @param clazz 泛型类型，表示数据类型，根据数据类型中的字段来获取主键构造信息
+     * @param <T>   泛型
+     * @return 返回CreateTable响应
+     * @throws UnsupportedDataTypeException 不支持的字段类型
+     */
+    <T> CreateTableResponse createTable(String table, Class<T> clazz) throws UnsupportedDataTypeException;
+
+    /**
+     * 在TableStore中创建表
+     *
+     * @param table           表名
+     * @param primaryKeyInfos 主键构造信息
+     * @return 返回CreateTable响应
+     * @throws UnsupportedDataTypeException 不支持的字段类型
+     */
+    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException;
+
+    /**
+     * 在TableStore中创建表
+     *
+     * @param table            表名
+     * @param clazz            泛型类型，表示数据类型，根据数据类型中的字段来获取主键构造信息
+     * @param timeToLive       数据生命周期，数据生命周期至少为86400秒（一天）或-1（数据永不过期）
+     * @param maxVersion       最大版本数
+     * @param maxTimeDeviation 有效版本偏差，即写入数据的时间戳与系统当前时间的偏差允许最大值
+     * @param allowUpdate      表中的数据是否允许Update操作
+     * @param <T>              泛型
+     * @return 返回CreateTable响应
+     * @throws UnsupportedDataTypeException 不支持的字段类型
+     */
+    <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException;
+
+    /**
+     * @param table            表名
+     * @param primaryKeyInfos  主键构造信息
+     * @param timeToLive       数据生命周期，数据生命周期至少为86400秒（一天）或-1（数据永不过期）
+     * @param maxVersion       最大版本数
+     * @param maxTimeDeviation 有效版本偏差，即写入数据的时间戳与系统当前时间的偏差允许最大值
+     * @param allowUpdate      表中的数据是否允许Update操作
+     * @return 返回CreateTable响应
+     * @throws UnsupportedDataTypeException 不支持的字段类型
+     */
+    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException;
+
+    /**
+     * 从TableStore删除表
+     *
+     * @param table 表名
+     * @return 返回DeleteTable响应
+     */
+    DeleteTableResponse deleteTable(String table);
+
+    /**
+     * 获取表信息描述
+     *
+     * @param table 表名
+     * @return 返回DescribeTable响应
+     */
+    DescribeTableResponse describeTable(String table);
 
     /**
      * 向TableStore中插入数据

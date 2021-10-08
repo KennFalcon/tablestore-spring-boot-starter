@@ -10,6 +10,7 @@ release:
 🚩 更新日志：
 1. 修改access-key-id和access-key-secret定义
 2. 新增TunnelService，用于创建、删除、查询通道
+3. 针对TableStoreService，增加建表、删表、获取表信息接口
 
 使用方式
 ----------
@@ -19,7 +20,7 @@ release:
 <dependency>
   <groupId>io.github.kennfalcon</groupId>
   <artifactId>tablestore-spring-boot-starter</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
 </dependency>
 ```
 

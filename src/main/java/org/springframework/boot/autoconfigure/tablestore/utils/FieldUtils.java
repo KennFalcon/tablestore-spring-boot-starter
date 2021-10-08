@@ -22,7 +22,7 @@ import java.util.Map;
 public class FieldUtils {
 
     public static Pair<Map<String, FieldInfo>, Boolean> getDeclaredFields(Class<?> clazz) {
-        Map<String, FieldInfo> fieldInfoMap = Maps.newHashMap();
+        Map<String, FieldInfo> fieldInfoMap = Maps.newLinkedHashMap();
         boolean hasDynamicField = getDeclaredFields(clazz, fieldInfoMap);
         return Pair.of(fieldInfoMap, hasDynamicField);
     }
