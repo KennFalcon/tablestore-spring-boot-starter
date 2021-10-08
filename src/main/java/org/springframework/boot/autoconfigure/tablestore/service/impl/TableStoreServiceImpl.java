@@ -63,7 +63,6 @@ import org.springframework.boot.autoconfigure.tablestore.utils.ColumnUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.FieldUtils;
 import org.springframework.boot.autoconfigure.tablestore.utils.OtsUtils;
 
-import javax.activation.UnsupportedDataTypeException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -82,17 +81,17 @@ public class TableStoreServiceImpl implements TableStoreService {
     }
 
     @Override
-    public <T> CreateTableResponse createTable(String table, Class<T> clazz) throws UnsupportedDataTypeException {
+    public <T> CreateTableResponse createTable(String table, Class<T> clazz) {
         return createTable(table, clazz, -1, 1, 86400, true);
     }
 
     @Override
-    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException {
+    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos) {
         return createTable(table, primaryKeyInfos, -1, 1, 86400, true);
     }
 
     @Override
-    public <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException {
+    public <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) {
         Pair<Map<String, FieldInfo>, Boolean> declaredFieldInfo = FieldUtils.getDeclaredFields(clazz);
         TableMeta tableMeta = tableMeta(table, declaredFieldInfo.getKey());
         TableOptions tableOptions = tableOptions(timeToLive, maxVersion, maxTimeDeviation, allowUpdate);
@@ -100,7 +99,7 @@ public class TableStoreServiceImpl implements TableStoreService {
     }
 
     @Override
-    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException {
+    public CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) {
         TableMeta tableMeta = tableMeta(table, primaryKeyInfos);
         TableOptions tableOptions = tableOptions(timeToLive, maxVersion, maxTimeDeviation, allowUpdate);
         return createTable(tableMeta, tableOptions);
@@ -295,7 +294,7 @@ public class TableStoreServiceImpl implements TableStoreService {
         return reply;
     }
 
-    private TableMeta tableMeta(String table, Map<String, FieldInfo> fieldInfos) throws UnsupportedDataTypeException {
+    private TableMeta tableMeta(String table, Map<String, FieldInfo> fieldInfos) {
         TableMeta tableMeta = new TableMeta(table);
         for (Map.Entry<String, FieldInfo> entry : fieldInfos.entrySet()) {
             if (entry.getValue().otsColumn() != null && entry.getValue().otsColumn().primaryKey()) {
@@ -305,7 +304,7 @@ public class TableStoreServiceImpl implements TableStoreService {
         return tableMeta;
     }
 
-    private TableMeta tableMeta(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException {
+    private TableMeta tableMeta(String table, List<Pair<String, Class<?>>> primaryKeyInfos) {
         TableMeta tableMeta = new TableMeta(table);
         for (Pair<String, Class<?>> primaryKeyInfo : primaryKeyInfos) {
             tableMeta.addPrimaryKeyColumn(primaryKeySchema(primaryKeyInfo.getKey(), primaryKeyInfo.getValue()));
@@ -323,7 +322,7 @@ public class TableStoreServiceImpl implements TableStoreService {
         return syncClient.createTable(new CreateTableRequest(tableMeta, tableOptions));
     }
 
-    private PrimaryKeySchema primaryKeySchema(String name, FieldInfo fieldInfo) throws UnsupportedDataTypeException {
+    private PrimaryKeySchema primaryKeySchema(String name, FieldInfo fieldInfo) {
         switch (fieldInfo.otsColumn().type()) {
             case BINARY:
                 return new PrimaryKeySchema(name, PrimaryKeyType.BINARY);
@@ -332,11 +331,11 @@ public class TableStoreServiceImpl implements TableStoreService {
             case STRING:
                 return new PrimaryKeySchema(name, PrimaryKeyType.STRING);
             default:
-                throw new UnsupportedDataTypeException("unsupported primary key type of key [" + name + "]");
+                throw new OtsException("unsupported primary key type of key [" + name + "]");
         }
     }
 
-    private PrimaryKeySchema primaryKeySchema(String name, Class<?> dataType) throws UnsupportedDataTypeException {
+    private PrimaryKeySchema primaryKeySchema(String name, Class<?> dataType) {
         if (dataType.isAssignableFrom(byte[].class)) {
             return new PrimaryKeySchema(name, PrimaryKeyType.BINARY);
         } else if (dataType.isAssignableFrom(Long.class)) {
@@ -346,7 +345,7 @@ public class TableStoreServiceImpl implements TableStoreService {
         } else if (dataType.isAssignableFrom(String.class)) {
             return new PrimaryKeySchema(name, PrimaryKeyType.STRING);
         } else {
-            throw new UnsupportedDataTypeException("unsupported primary key type of key [" + name + "]");
+            throw new OtsException("unsupported primary key type of key [" + name + "]");
         }
     }
 

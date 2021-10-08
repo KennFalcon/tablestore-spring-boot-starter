@@ -16,7 +16,6 @@ import org.springframework.boot.autoconfigure.tablestore.model.IndexSearchReply;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetQuery;
 import org.springframework.boot.autoconfigure.tablestore.model.RangeGetReply;
 
-import javax.activation.UnsupportedDataTypeException;
 import java.util.List;
 
 /**
@@ -32,9 +31,8 @@ public interface TableStoreService {
      * @param clazz 泛型类型，表示数据类型，根据数据类型中的字段来获取主键构造信息
      * @param <T>   泛型
      * @return 返回CreateTable响应
-     * @throws UnsupportedDataTypeException 不支持的字段类型
      */
-    <T> CreateTableResponse createTable(String table, Class<T> clazz) throws UnsupportedDataTypeException;
+    <T> CreateTableResponse createTable(String table, Class<T> clazz);
 
     /**
      * 在TableStore中创建表
@@ -42,9 +40,8 @@ public interface TableStoreService {
      * @param table           表名
      * @param primaryKeyInfos 主键构造信息
      * @return 返回CreateTable响应
-     * @throws UnsupportedDataTypeException 不支持的字段类型
      */
-    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos) throws UnsupportedDataTypeException;
+    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos);
 
     /**
      * 在TableStore中创建表
@@ -57,9 +54,8 @@ public interface TableStoreService {
      * @param allowUpdate      表中的数据是否允许Update操作
      * @param <T>              泛型
      * @return 返回CreateTable响应
-     * @throws UnsupportedDataTypeException 不支持的字段类型
      */
-    <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException;
+    <T> CreateTableResponse createTable(String table, Class<T> clazz, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate);
 
     /**
      * @param table            表名
@@ -69,9 +65,8 @@ public interface TableStoreService {
      * @param maxTimeDeviation 有效版本偏差，即写入数据的时间戳与系统当前时间的偏差允许最大值
      * @param allowUpdate      表中的数据是否允许Update操作
      * @return 返回CreateTable响应
-     * @throws UnsupportedDataTypeException 不支持的字段类型
      */
-    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate) throws UnsupportedDataTypeException;
+    CreateTableResponse createTable(String table, List<Pair<String, Class<?>>> primaryKeyInfos, int timeToLive, int maxVersion, long maxTimeDeviation, boolean allowUpdate);
 
     /**
      * 从TableStore删除表
